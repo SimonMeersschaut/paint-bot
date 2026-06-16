@@ -1,0 +1,15 @@
+- resizing van image:
+    - moet juist gebeuren
+    - SLICE super pixel segmentation moet op ge-resizede image werken (voor performance)
+    - de white space mag niet ge-stroke-rendered worden (wat nu wel het geval is; zie json)
+    - 220x220 ipv 440x440 (voor de printer)
+- configuratie ipynb script
+    - om de printer te homen en posities af te stellen als 
+        - waar staat de verf, het water, de canvas etc.
+
+- printer physical actions:
+    1) verf nemen
+    2) water nemen
+    3) stroke utivoeren
+
+- Alles samenzetten in een execution script
