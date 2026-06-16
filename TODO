@@ -1,15 +1,19 @@
-- resizing van image:
-    - moet juist gebeuren
-    - SLICE super pixel segmentation moet op ge-resizede image werken (voor performance)
-    - de white space mag niet ge-stroke-rendered worden (wat nu wel het geval is; zie json)
-    - 220x220 ipv 440x440 (voor de printer)
-- configuratie ipynb script
-    - om de printer te homen en posities af te stellen als 
-        - waar staat de verf, het water, de canvas etc.
-
-- printer physical actions:
-    1) verf nemen
-    2) water nemen
-    3) stroke utivoeren
+- de edges worden nog raar ge-reendered
+- gebruik saliency om een brush size te bepalen
+- improve stroke generation zodat er minder strokes ge-declined worden
+    -> voornamelijk `color-error` en `stroke too short`
+    -> Door doelgerichter aan stroke-generation te doen
+        -> we moeten analytisch beter doorhebben hoe een
+        stroke eruit ziet en hoe we die kunnen genereren.
+        -> bv. door per K-nearest color, een map op
+        te bouwen met simmelarity, en dan die map te volgen
+    -> Stroke length kan je verbeteren door in twee
+    richtingen te expanden (!)
+- niceness is niet iets dat je ieder segment opnieuw beseft,
+ het is iets dat
+    1) appart gefit moet worden per parameter (denk: coverage score, color-error)
+    2) dynamisch groeit over de hele stroke generation
+        -> hou een getal bij dat maar lichtjes aangepast mag worden per iteratie
+        -> dan ga je veel effectiever strokes kunnen genereren
 
 - Alles samenzetten in een execution script

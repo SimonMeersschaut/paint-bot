@@ -223,7 +223,7 @@ def animate_stroke_sequence(stroke_sequence, opacity=0.8):
 def visualize_stroke_sequence(stroke_sequence, opacity=0.8, max_count=None):
     """Visualize a StrokeSequence by returning the image of all strokes with alpha transparency rendering."""
     if len(stroke_sequence.strokes) == 0:
-        raise ValueError("No strokeso to visualize")
+        raise ValueError("No strokes to visualize")
     
     if max_count is None:
         max_count = len(stroke_sequence.strokes) - 1
