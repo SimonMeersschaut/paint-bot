@@ -9,11 +9,13 @@
         te bouwen met simmelarity, en dan die map te volgen
     -> Stroke length kan je verbeteren door in twee
     richtingen te expanden (!)
+
 - niceness is niet iets dat je ieder segment opnieuw beseft,
  het is iets dat
     1) appart gefit moet worden per parameter (denk: coverage score, color-error)
     2) dynamisch groeit over de hele stroke generation
         -> hou een getal bij dat maar lichtjes aangepast mag worden per iteratie
         -> dan ga je veel effectiever strokes kunnen genereren
-
+    3) pre-parameter-fitting:
+    beschouw random segmenten en fit de parameters voor een optimale stroke generation
 - Alles samenzetten in een execution script
