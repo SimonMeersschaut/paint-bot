@@ -20,9 +20,8 @@ class Events(Enum):
 class StrokeGenerationSupervisor:
     def __init__(self):
         self.events = {}
-        self._max_error_threshold = 100
 
-        self.Z_VALUE = 1 # 1.28 = 10%
+        self.Z_VALUE = 1 # sigma;  1.28sigma = 10%
 
         # --- Kalman Filter Parameters ---
         self.mu = 50.0       # Initial estimated mean color error
@@ -32,17 +31,14 @@ class StrokeGenerationSupervisor:
         self.sigma = 15.0    # Initial estimated standard deviation of the population
         self.alpha = 0.05    # Learning rate for the moving standard deviation
 
-        # --- Data Tracking Lists ---
         self.history_errors = []
         self.history_mu = []
         self.history_sigma = []
-        self.history_thresholds = []
         self.history_accepted = []
 
-        # Given from original code skeleton
-        self._min_stroke_length_pixels = 5 # mm
-        self.error_threshold_history = [self._max_error_threshold]
-        self.stroke_length_history = [self._min_stroke_length_pixels]
+        self.error_threshold_history = []
+
+        self.brush_size = 15
     
     def register_event(self, event: Events):
         if event == Events.stroke_accepted:
@@ -52,42 +48,41 @@ class StrokeGenerationSupervisor:
                 self.events[event] = 0
             self.events[event] += 1
     
-    def is_accepted(self, stroke_color_error: float) -> bool:
-        # 1. Predict Step (Constant state model)
-        self.P = self.P + self.Q
-
-        # 2. Update Step (Kalman Gain and Measurement Correction)
-        kalman_gain = self.P / (self.P + self.R)
-        residual = stroke_color_error - self.mu
-        self.mu = self.mu + kalman_gain * residual
-        self.P = (1 - kalman_gain) * self.P
-
-        # 3. Dynamic Population Variance Tracking (Exponential Moving Variance)
-        # Tracks how spread out the incoming stroke errors are around the current mean
-        self.sigma = np.sqrt((1 - self.alpha) * (self.sigma ** 2) + self.alpha * (residual ** 2))
-
-        # 4. Determine Dynamic Threshold (Z = -1.28 targets the lowest 10%)
+    def is_accepted(self, stroke_color_error: float, update_kalman=True) -> bool:
         # Guard it so it doesn't exceed the absolute hard limit or drop below 0
         current_threshold = max(0.0, self.mu - self.Z_VALUE * self.sigma)
-
-        # 5. Evaluate Stroke
         accepted = stroke_color_error <= current_threshold
 
-        # 6. Save Data for Plotting
-        self.history_errors.append(stroke_color_error)
-        self.history_mu.append(self.mu)
-        self.history_sigma.append(self.sigma)
-        self.history_thresholds.append(current_threshold)
-        self.history_accepted.append(accepted)
+        if update_kalman:
+            # 1. Predict Step (Constant state model)
+            self.P = self.P + self.Q
 
-        if accepted:
-            self.register_event(Events.stroke_accepted)
-        else:
-            self.register_event(Events.too_much_color_error)
+            # 2. Update Step (Kalman Gain and Measurement Correction)
+            kalman_gain = self.P / (self.P + self.R)
+            residual = stroke_color_error - self.mu
+            self.mu = self.mu + kalman_gain * residual
+            self.P = (1 - kalman_gain) * self.P
+
+            # 3. Dynamic Population Variance Tracking (Exponential Moving Variance)
+            # Tracks how spread out the incoming stroke errors are around the current mean
+            self.sigma = np.sqrt((1 - self.alpha) * (self.sigma ** 2) + self.alpha * (residual ** 2))
+
+            # 4. Determine Dynamic Threshold (Z = -1.28 targets the lowest 10%)
+
+            # 5. Save Data for Plotting
+            self.history_errors.append(stroke_color_error)
+            self.history_mu.append(self.mu)
+            self.history_sigma.append(self.sigma)
+            self.history_accepted.append(accepted)
+
+            if accepted:
+                self.register_event(Events.stroke_accepted)
+            else:
+                self.register_event(Events.too_much_color_error)
 
         return accepted
 
-    def plot_settings_history(self):
+    def plot_color_error_history(self):
         """Plots the Kalman filter tracking parameters, threshold, and raw stroke errors."""
         if not self.history_errors:
             print("No history data to plot.")
@@ -97,6 +92,13 @@ class StrokeGenerationSupervisor:
         errors = np.array(self.history_errors)
         accepted = np.array(self.history_accepted)
 
+        # Convert history arrays to numpy arrays for vector math operations
+        mu_arr = np.array(self.history_mu)
+        sigma_arr = np.array(self.history_sigma)
+
+        # Vectorized equivalent of: max(0.0, self.mu - self.Z_VALUE * self.sigma)
+        thresholds = np.maximum(0.0, mu_arr - self.Z_VALUE * sigma_arr)
+
         plt.figure(figsize=(12, 6))
 
         # Scatter plot for strokes (Green = Accepted, Red = Rejected)
@@ -105,14 +107,14 @@ class StrokeGenerationSupervisor:
 
         # Line plots for Kalman parameters
         plt.plot(steps, self.history_mu, color='blue', linewidth=2, label='Estimated Mean ($\mu$)')
-        plt.plot(steps, self.history_thresholds, color='black', linestyle='--', linewidth=2, label='Acceptance Threshold ($\mu - 1.28\sigma$)')
+        
+        label_text = f'Acceptance Threshold ($\mu - {self.Z_VALUE}\sigma$)'
+        plt.plot(steps, thresholds, color='black', linestyle='--', linewidth=2, label=label_text, zorder=4)
         
         # Shade the standard deviation band around the mean
-        mu_arr = np.array(self.history_mu)
-        sigma_arr = np.array(self.history_sigma)
         plt.fill_between(steps, mu_arr - sigma_arr, mu_arr + sigma_arr, color='blue', alpha=0.1, label='Population Spread ($\pm 1\sigma$)')
 
-        plt.title("Adaptive Kalman Filter Stroke Selection", fontsize=14, weight='bold')
+        plt.title("Adaptive Kalman Filter Stroke Error", fontsize=14, weight='bold')
         plt.xlabel("Stroke Sequence / Time", fontsize=11)
         plt.ylabel("Color Error", fontsize=11)
         plt.grid(True, linestyle=':', alpha=0.6)
@@ -158,7 +160,8 @@ class StrokeGenerationSupervisor:
         return 1000
         
     @property
-    def target_coverage(self) -> float:
+    def supercell_target_coverage(self) -> float:
+        """If we have more coverage than this, we wont try fitting."""
         return .90
 
     @property
@@ -173,15 +176,16 @@ class StrokeGenerationSupervisor:
     def min_stroke_length_pixels(self) -> float:
         return self._min_stroke_length_pixels
 
-    @property
-    def brush_size(self) -> float:
-        return 15
+    # @property
+    # def brush_size(self) -> float:
+    #     return 15
  
     @property
-    def min_coverage_percentage(self) -> float:
-        return .9
+    def min_stroke_coverage_score(self) -> float:
+        """"""
+        return .25
 
     @property
     def gradient_step_size(self) -> float:
-        return 5
+        return 1
     
