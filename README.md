@@ -1,17 +1,14 @@
 # Paint Robot
 
+
 A Python-based research and implementation project for paint robot control and optimization.
 
-## Project Structure
+![A stroke-render of an elephant](docs/elephant.png)
 
-- **main.ipynb** - Research notebook for experimentation and analysis
-- **src/** - Core Python package containing backend functionality
-- **docs/** - Sphinx documentation
-
-## Contributing
-
-See CONTRIBUTING.md for guidelines.
-
+## More Results
+![A stroke-render of a flower](docs/flower.png)
+![A stroke-render of a bird](docs/bird.png)
+![A stroke-render of a eagle](docs/arend.png)
 ## License
 
 MIT License
