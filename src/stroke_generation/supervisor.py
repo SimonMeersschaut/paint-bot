@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from enum import Enum
+import numpy as np
 
 
 class Events(Enum):
@@ -15,66 +16,108 @@ class Events(Enum):
     max_attempts_reached = "Max attempts reached."
     stroke_accepted = "Stroke accepted"
 
+
 class StrokeGenerationSupervisor:
     def __init__(self):
         self.events = {}
         self._max_error_threshold = 100
-        self._min_stroke_length_pixels = 20
 
+        self.Z_VALUE = 1 # 1.28 = 10%
+
+        # --- Kalman Filter Parameters ---
+        self.mu = 50.0       # Initial estimated mean color error
+        self.P = 100.0       # Initial estimation uncertainty (variance)
+        self.Q = 0.5         # Process noise (allows the mean to drift over time)
+        self.R = 25.0        # Measurement noise 
+        self.sigma = 15.0    # Initial estimated standard deviation of the population
+        self.alpha = 0.05    # Learning rate for the moving standard deviation
+
+        # --- Data Tracking Lists ---
+        self.history_errors = []
+        self.history_mu = []
+        self.history_sigma = []
+        self.history_thresholds = []
+        self.history_accepted = []
+
+        # Given from original code skeleton
+        self._min_stroke_length_pixels = 5 # mm
         self.error_threshold_history = [self._max_error_threshold]
         self.stroke_length_history = [self._min_stroke_length_pixels]
     
     def register_event(self, event: Events):
-        TARGET_ACCEPTANCE_RATE = .02
-        D_ERROR = .1
-        D_STROKE_LENGTH = .1
         if event == Events.stroke_accepted:
-            self._max_error_threshold -= D_ERROR / TARGET_ACCEPTANCE_RATE
-            self._min_stroke_length_pixels += D_STROKE_LENGTH / TARGET_ACCEPTANCE_RATE
-
+            pass
         else:
             if event not in self.events:
                 self.events[event] = 0
             self.events[event] += 1
-
-            if event == Events.too_much_color_error:
-                self._max_error_threshold += D_ERROR
-            elif event == Events.stroke_too_short:
-                self._min_stroke_length_pixels -= D_STROKE_LENGTH
-
-        self.error_threshold_history.append(self._max_error_threshold)
-        self.stroke_length_history.append(self._min_stroke_length_pixels)
     
+    def is_accepted(self, stroke_color_error: float) -> bool:
+        # 1. Predict Step (Constant state model)
+        self.P = self.P + self.Q
+
+        # 2. Update Step (Kalman Gain and Measurement Correction)
+        kalman_gain = self.P / (self.P + self.R)
+        residual = stroke_color_error - self.mu
+        self.mu = self.mu + kalman_gain * residual
+        self.P = (1 - kalman_gain) * self.P
+
+        # 3. Dynamic Population Variance Tracking (Exponential Moving Variance)
+        # Tracks how spread out the incoming stroke errors are around the current mean
+        self.sigma = np.sqrt((1 - self.alpha) * (self.sigma ** 2) + self.alpha * (residual ** 2))
+
+        # 4. Determine Dynamic Threshold (Z = -1.28 targets the lowest 10%)
+        # Guard it so it doesn't exceed the absolute hard limit or drop below 0
+        current_threshold = max(0.0, self.mu - self.Z_VALUE * self.sigma)
+
+        # 5. Evaluate Stroke
+        accepted = stroke_color_error <= current_threshold
+
+        # 6. Save Data for Plotting
+        self.history_errors.append(stroke_color_error)
+        self.history_mu.append(self.mu)
+        self.history_sigma.append(self.sigma)
+        self.history_thresholds.append(current_threshold)
+        self.history_accepted.append(accepted)
+
+        if accepted:
+            self.register_event(Events.stroke_accepted)
+        else:
+            self.register_event(Events.too_much_color_error)
+
+        return accepted
+
     def plot_settings_history(self):
-        """Plots the evaluation history of max color error and min stroke length over time."""
-        if len(self.error_threshold_history) <= 1:
-            print("Not enough history events to plot yet.")
+        """Plots the Kalman filter tracking parameters, threshold, and raw stroke errors."""
+        if not self.history_errors:
+            print("No history data to plot.")
             return
 
-        # Setup dual-axis figure for differing scale scopes
-        fig, ax1 = plt.subplots(figsize=(10, 5))
+        steps = np.arange(len(self.history_errors))
+        errors = np.array(self.history_errors)
+        accepted = np.array(self.history_accepted)
 
-        # Primary Axis (Left) - Color Error Threshold
-        color1 = '#e74c3c' # Modern crimson/red
-        line1 = ax1.plot(self.error_threshold_history, color=color1, linewidth=2, label="Max Color Error Threshold")
-        ax1.set_xlabel("Event Sequence (Time)", fontsize=11, fontweight='bold', labelpad=10)
-        ax1.set_ylabel("Max Color Error Threshold", color=color1, fontsize=11, fontweight='bold')
-        ax1.tick_params(axis='y', labelcolor=color1)
-        ax1.grid(True, linestyle='--', alpha=0.5)
+        plt.figure(figsize=(12, 6))
 
-        # Secondary Axis (Right) - Minimum Stroke Length
-        ax2 = ax1.twinx()
-        color2 = '#2980b9' # Modern slate/blue
-        line2 = ax2.plot(self.stroke_length_history, color=color2, linewidth=2, linestyle='--', label="Min Stroke Length (px)")
-        ax2.set_ylabel("Min Stroke Length (pixels)", color=color2, fontsize=11, fontweight='bold')
-        ax2.tick_params(axis='y', labelcolor=color2)
+        # Scatter plot for strokes (Green = Accepted, Red = Rejected)
+        plt.scatter(steps[accepted], errors[accepted], color='g', alpha=0.6, label='Accepted Strokes (Best 10%)', zorder=3)
+        plt.scatter(steps[~accepted], errors[~accepted], color='r', alpha=0.15, label='Rejected Strokes', zorder=2)
 
-        # Unified Legend configuration
-        lines = line1 + line2
-        labels = [l.get_label() for l in lines]
-        ax1.legend(lines, labels, loc='upper left', frameon=True, facecolor='white', edgecolor='none')
+        # Line plots for Kalman parameters
+        plt.plot(steps, self.history_mu, color='blue', linewidth=2, label='Estimated Mean ($\mu$)')
+        plt.plot(steps, self.history_thresholds, color='black', linestyle='--', linewidth=2, label='Acceptance Threshold ($\mu - 1.28\sigma$)')
+        
+        # Shade the standard deviation band around the mean
+        mu_arr = np.array(self.history_mu)
+        sigma_arr = np.array(self.history_sigma)
+        plt.fill_between(steps, mu_arr - sigma_arr, mu_arr + sigma_arr, color='blue', alpha=0.1, label='Population Spread ($\pm 1\sigma$)')
 
-        plt.title("Parameter Evolution History Across Tuning Events", fontsize=13, fontweight='bold', pad=15)
+        plt.title("Adaptive Kalman Filter Stroke Selection", fontsize=14, weight='bold')
+        plt.xlabel("Stroke Sequence / Time", fontsize=11)
+        plt.ylabel("Color Error", fontsize=11)
+        plt.grid(True, linestyle=':', alpha=0.6)
+        plt.legend(loc='upper right')
+        
         plt.tight_layout()
         plt.show()
 
@@ -84,36 +127,28 @@ class StrokeGenerationSupervisor:
             print("No events to plot.")
             return
 
-        # Extract clean string values from the Enum for readable labels
         labels = [event.value for event in self.events.keys()]
         sizes = list(self.events.values())
         
-        # Create a figure and axis
         fig, ax = plt.subplots(figsize=(6, 6))
-        
-        # FIX: Use the modern Matplotlib 3.8+ colormap syntax
         cmap = plt.colormaps['Set3']
         colors = cmap(range(len(labels)))
 
-        # Plot the pie chart
         wedges, texts, autotexts = ax.pie(
             sizes, 
             labels=labels, 
-            autopct=lambda p: f'{int(round(p * sum(sizes) / 100))}', # Added round() to prevent float truncation errors
+            autopct=lambda p: f'{int(round(p * sum(sizes) / 100))}', 
             startangle=90, 
             colors=colors,
             textprops=dict(color="black"),
-            wedgeprops=dict(width=0.4, edgecolor='white') # 'width' creates the donut hole
+            wedgeprops=dict(width=0.4, edgecolor='white') 
         )
 
-        # Style the text inside the slices
         for autotext in autotexts:
             autotext.set_fontsize(10)
             autotext.set_weight('bold')
 
         ax.set_title("Stroke Generation Events", fontsize=14, weight='bold', pad=20)
-        
-        # Ensure the chart is a perfect circle
         ax.axis('equal')  
         plt.tight_layout()
         plt.show()
