@@ -195,7 +195,7 @@ def calculate_stroke_duration(stroke_sequence, i, length_per_seconds:float):
     total_path_length = float(np.sum(segment_lengths))
     return total_path_length / length_per_seconds
 
-def animate_stroke_sequence(stroke_sequence, opacity=0.8):
+def animate_stroke_sequence(stroke_sequence, filename = "tmp", opacity=0.8):
     """Animate a StrokeSequence data structure as a video with alpha transparency rendering."""
     canvas_width, canvas_height = stroke_sequence.image_size
     padding = 100
@@ -206,7 +206,7 @@ def animate_stroke_sequence(stroke_sequence, opacity=0.8):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
     if not os.path.exists("tmp"):
         raise FileExistsError("tmp not found.")
-    video_writer = cv2.VideoWriter('tmp/animation.mp4', fourcc, fps, (video_width, video_height))
+    video_writer = cv2.VideoWriter(f'tmp/{filename}.mp4', fourcc, fps, (video_width, video_height))
 
     print("Start video rendering...")
     clock_time = 0

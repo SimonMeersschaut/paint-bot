@@ -21,7 +21,7 @@ class StrokeGenerationSupervisor:
     def __init__(self):
         self.events = {}
 
-        self.Z_VALUE = 1 # sigma;  1.28sigma = 10%
+        self.Z_VALUE = 0 # sigma;  1.28sigma = 10%
 
         # --- Kalman Filter Parameters ---
         self.mu = 50.0       # Initial estimated mean color error
@@ -162,7 +162,7 @@ class StrokeGenerationSupervisor:
     @property
     def supercell_target_coverage(self) -> float:
         """If we have more coverage than this, we wont try fitting."""
-        return .90
+        return .95
 
     @property
     def max_stroke_list_length(self) -> int:
@@ -174,12 +174,8 @@ class StrokeGenerationSupervisor:
         
     @property
     def min_stroke_length_pixels(self) -> float:
-        return self._min_stroke_length_pixels
+        return 25
 
-    # @property
-    # def brush_size(self) -> float:
-    #     return 15
- 
     @property
     def min_stroke_coverage_score(self) -> float:
         """"""
