@@ -1,15 +1,9 @@
 # Paint Robot
 
-
-A Python-based research and implementation project for paint robot control and optimization.
+Python-based control and optimization system for robotic paint applications.
 
 ![A stroke-render of an elephant](docs/elephant.png)
 
-## More Results
-![A stroke-render of a flower](docs/flower.png)
-![A stroke-render of a bird](docs/bird.png)
-![A stroke-render of a eagle](docs/arend.png)
+## Read more
 
-## License
-
-MIT License
+You can find extensive documentation in the documentation website located in this repository.
