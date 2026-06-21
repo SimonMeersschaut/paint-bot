@@ -2,7 +2,9 @@
 
 Python-based control and optimization system for robotic paint applications.
 
-![A stroke-render of an elephant](docs/elephant.png)
+<div align="center">
+    <img src="docs/elephant.png" alt="A stroke-render of an elephant" width="200"/>
+</div>
 
 ## Read more
 
