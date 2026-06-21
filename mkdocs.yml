@@ -36,19 +36,11 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quickstart.md
-  - Guides:
-    - Robot Control: guides/robot-control.md
-    - Stroke Generation: guides/stroke-generation.md
-    - Calibration: guides/calibration.md
   - API Reference:
     - Datatypes: api/datatypes.md
     - StrokeSequence: api/strokesequence.md
     - StrokePath: api/strokepath.md
     - RobotCalibration: api/calibration.md
-  - Contributing: contributing.md
   - License: license.md
 
 docs_dir: docs
