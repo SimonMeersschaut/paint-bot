@@ -1,0 +1,55 @@
+site_name: Paint Robot
+site_description: A Python-based research and implementation project for paint robot control and optimization
+site_author: Simon
+site_url: https://yourusername.github.io/paint-bot/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: orange
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight:
+      use_pygments: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.arithmatex
+  - pymdownx.details
+  - pymdownx.tasklist
+  - attr_list
+  - tables
+  - admonition
+  - toc
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Guides:
+    - Robot Control: guides/robot-control.md
+    - Stroke Generation: guides/stroke-generation.md
+    - Calibration: guides/calibration.md
+  - API Reference:
+    - Datatypes: api/datatypes.md
+    - StrokeSequence: api/strokesequence.md
+    - StrokePath: api/strokepath.md
+    - RobotCalibration: api/calibration.md
+  - Contributing: contributing.md
+  - License: license.md
+
+docs_dir: docs
+site_dir: site

@@ -10,8 +10,8 @@ flake8>=3.9
 isort>=5.9
 
 # Documentation
-sphinx>=4.0
-sphinx-rtd-theme>=1.0
+mkdocs>=1.5.0
+mkdocs-material>=9.4.0
 
 # Jupyter notebook support
 jupyter>=1.0.0
