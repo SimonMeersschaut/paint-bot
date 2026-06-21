@@ -21,6 +21,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,10 +48,12 @@ jobs:
       - name: Build documentation
         run: mkdocs build
 
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './site'
+
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          cname: # Optional: add your custom domain here (e.g., docs.example.com)
+        id: deployment
+        uses: actions/deploy-pages@v4
