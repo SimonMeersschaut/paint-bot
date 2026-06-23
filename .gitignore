@@ -137,4 +137,5 @@ dmypy.json
 *.tmp
 
 tmp.mp4
+*.mp4
 *.pt
