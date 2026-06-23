@@ -2,6 +2,9 @@
 
 Welcome to the Paint Robot documentation! This is a Python-based research and implementation project for paint robot control and optimization.
 
+<div align="center">
+    <img src="elephant.png" alt="A stroke-render of an elephant" width="300"/>
+</div>
 
 ## Documenation
 
