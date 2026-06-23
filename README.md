@@ -13,10 +13,10 @@ Be sure to take a look at our code documentation and algorithm explanations.
 You can compile this documentation locally using
 
 ```bash
-$ mkdocs build
 $ mkdocs serve
 ```
 
+or you could take a look at the website served by github in this repo.
 
 ## License
 

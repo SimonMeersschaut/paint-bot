@@ -8,6 +8,6 @@ However, we're not done yet; we still need to solve those smaller problems. The 
 The gradient is calculated in advance for the entire image, based on a black and white version of the original image.
 
 After a stopcriterion is met, we ask ourselves the question wether the generated stroke is worth it to render on the canvas. Hence, a stroke that only covers one additional pixel is very bad, since it is not worth the time to draw it. Moreover, a stroke that has too much color difference with the real image (e.g. drawing a red stroke on a blue sky), would make the image look worse than without it.
-A so called [Stroke Generation Supervisor](stroke_generation_supervisor.md) will decide in real time if the stroke is accepted or not.
+A so called [Stroke Generation Supervisor](supervisor.md) will decide in real time if the stroke is accepted or not.
 
 ![segment stroke generation.png](segment_stroke_generation.png)

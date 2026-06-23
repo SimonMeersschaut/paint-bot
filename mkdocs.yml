@@ -42,7 +42,7 @@ nav:
     - Depth Estimation: stroke_algorithm/depth_estimation.md
     - Segmentation: stroke_algorithm/segmentation.md
     - Expanding: stroke_algorithm/stroke_expanding.md
-    - Supervisor: stroke_algorithm/stroke_generation_supervisor.md
+    - Supervisor: stroke_algorithm/supervisor.md
   - Hardware Control:
     - Overview: hardware/overview.md
   - API Reference:

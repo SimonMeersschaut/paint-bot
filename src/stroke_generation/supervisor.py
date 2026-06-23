@@ -157,6 +157,7 @@ class StrokeGenerationSupervisor:
 
     @property
     def max_attempts(self) -> int:
+        """Attempts to create a stroke, per segment"""
         return 1000
         
     @property
@@ -166,22 +167,27 @@ class StrokeGenerationSupervisor:
 
     @property
     def max_stroke_list_length(self) -> int:
+        """The maximum length a list can have."""
         return 300
 
     @property
+    def min_stroke_length_pixels(self) -> float:
+        """The maximum length a stroke can have, algebraically."""
+        return 25
+    
+    @property
     def max_error_threshold(self) -> float:
+        """The maximum error a stroke can have with the original image."""
         return self._max_error_threshold
         
-    @property
-    def min_stroke_length_pixels(self) -> float:
-        return 25
 
     @property
     def min_stroke_coverage_score(self) -> float:
-        """"""
+        """The minimum stroke score a stroke must have."""
         return .25
 
     @property
     def gradient_step_size(self) -> float:
+        """The step size for iterative stroke generation."""
         return 1
     
