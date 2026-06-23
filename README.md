@@ -16,7 +16,7 @@ You can compile this documentation locally using
 $ mkdocs serve
 ```
 
-or you could take a look at the website served by github in this repo.
+or you could take a look at the <a href="https://simonmeersschaut.github.io/paint-bot/">Documentation website</a>.
 
 ## License
 
