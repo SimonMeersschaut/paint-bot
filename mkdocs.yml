@@ -42,16 +42,16 @@ extra_javascript:
 
 nav:
   - Home: index.md
+  - Contributing: contributing.md
   - License: license.md
   - Stroke Generation Algorithm:
     - Overview: stroke_algorithm/overview.md
-    - Depth Estimation: stroke_algorithm/depth_estimation.md
-    - Segmentation: stroke_algorithm/segmentation.md
     - Stroke Ordering: stroke_algorithm/stroke_ordering.md
     - Expanding: stroke_algorithm/stroke_expanding.md
     - Supervisor: stroke_algorithm/supervisor.md
-  - Hardware Control:
+  - Hardware:
     - Overview: hardware/overview.md
+    - 3D Prints: hardware/3d_prints.md
   - API Reference:
     - Datatypes: api/datatypes.md
     - StrokeSequence: api/strokesequence.md
