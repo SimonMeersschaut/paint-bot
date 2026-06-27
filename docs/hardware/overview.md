@@ -26,6 +26,9 @@ If one wants to copy our setup, the following parts will definetelly be required
 | Ender-3 v2 | This is the backbone we use for the entire hardware. |
 | Creality 42-40 | This can be an alternative for buying the entire printer. |
 | 24V 2.5A Power supply | The arduino can not deliver enough power for the stepper motors. |
+| <a href="https://www.123-3d.nl/123-3D-RAMPS-v1-4-volledig-geassembleerd-i364.html?utm_source=google&utm_medium=organic&utm_campaign=free-listings&utm_term=DRW00008">RAMPS 1.4</a> | This board is placed on top of the Arduino, to connect the GPIO pins to the stepper motor controllers. On the board are also capacitors to regulate the voltage. |
+
+
 
 ## GRBL Software
 
