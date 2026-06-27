@@ -43,8 +43,11 @@ The Arduino Mega is equiped with the latest <a href="https://github.com/marlinfi
 We found it most conventient to upload this using the `PlatformIO` extension for vscode, altough that is
 a personal preference after all.
 
-Note that when making changes to the configuration file of the Marlin software, the changes will not take place
-immediatly after upload. Indeed, the program uses EEPROM to save settings into persistent memory. You need to send `$RST` in order to reset the settings.
+Some modifications to the Marlin source code were made. You can find the diff file [here](diff.md).
+
+!!! failure "Reload when making changes"
+    When making changes to the configuration file of the Marlin software, the changes will not take place
+    immediatly after upload. Indeed, the program uses EEPROM to save settings into persistent memory. You need to send `$RST` in order to reset the settings.
 
 ## Commands
 
