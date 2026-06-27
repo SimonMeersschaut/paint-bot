@@ -1,5 +1,10 @@
 # Hardware 
 
+![setup overview](setup.png)
+
+In this chapter we will give a short introduction to our setup. We will discuss the components used and how to install the software.
+
+
 ## Overview
 
 ![Hardware overview](hardware_overview.png)
@@ -28,6 +33,8 @@ If one wants to copy our setup, the following parts will definetelly be required
 | 24V 2.5A Power supply | The arduino can not deliver enough power for the stepper motors. |
 | <a href="https://www.123-3d.nl/123-3D-RAMPS-v1-4-volledig-geassembleerd-i364.html?utm_source=google&utm_medium=organic&utm_campaign=free-listings&utm_term=DRW00008">RAMPS 1.4</a> | This board is placed on top of the Arduino, to connect the GPIO pins to the stepper motor controllers. On the board are also capacitors to regulate the voltage. |
 
+!!! failure "This list is a suggestion"
+    The parts in the above list are those that we used in our setup. All of them could be replaced with an alternative. You could, for example, use an Arduino Uno with the <a href="https://www.123-3d.nl/123-3D-Arduino-CNC-shield-v3-grbl-compatible-i1991.html?utm_source=google&utm_medium=organic&utm_campaign=free-listings&utm_term=DRW00016">Arduino Uno CNC board</a>.
 
 
 ## Marlin Software
