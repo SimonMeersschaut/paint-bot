@@ -30,18 +30,18 @@ If one wants to copy our setup, the following parts will definetelly be required
 
 
 
-## GRBL Software
+## Marlin Software
 
-The Arduino Mega is equiped with the latest <a href="https://github.com/gnea/grbl-Mega">GRBL software</a>.
+The Arduino Mega is equiped with the latest <a href="https://github.com/marlinfirmware/marlin">Marlin software</a>.
 We found it most conventient to upload this using the `PlatformIO` extension for vscode, altough that is
 a personal preference after all.
 
-Note that when making changes to the configuration file of the GRBL software, the changes will not take place
+Note that when making changes to the configuration file of the Marlin software, the changes will not take place
 immediatly after upload. Indeed, the program uses EEPROM to save settings into persistent memory. You need to send `$RST` in order to reset the settings.
 
 ## Commands
 
-Our GRBL software will accept most of the GCODE commands, plus some GRBL-specific commands.
+Our Marlin software will accept most of the GCODE commands, plus some GRBL-specific commands.
 We shortly go over the most important commands. See the source for a full list of all commands.
 
 | GCODE command | Description |

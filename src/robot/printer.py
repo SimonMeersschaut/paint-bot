@@ -55,6 +55,7 @@ class SerialPrinter(Printer):
         self.send_command("M502") # Load settings from code (instead of EEPROM) 
         self.send_command("G28") # Home
         self.send_command("G90") # Absolute coordinates
+        # self.send_command("$1=25") # remove power when a motor is idle
 
     def send_command(self, command: str) -> str:
         """

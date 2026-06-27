@@ -25,6 +25,7 @@ class RobotCalibration:
     bottom_left: tuple[int, int, int]
     bottom_right: tuple[int, int, int]
     water_reservoir: tuple[int, int, int]
+    safe_height: int
     color_palette = None
 
     def __post_init__(self):
@@ -46,7 +47,8 @@ class RobotCalibration:
                 "bottom_left": self.bottom_left,
                 "bottom_right": self.bottom_right,
                 "water_reservoir": self.water_reservoir,
-                "color_palette": self.color_palette.dump()
+                "color_palette": self.color_palette.dump(),
+                "safe_height": self.safe_height,
             }
             json.dump(data, f, indent=4)
 
@@ -61,7 +63,8 @@ class RobotCalibration:
             top_right=tuple(data["top_right"]),
             bottom_left=tuple(data["bottom_left"]),
             bottom_right=tuple(data["bottom_right"]),
-            water_reservoir=tuple(data["water_reservoir"])
+            water_reservoir=tuple(data["water_reservoir"]),
+            safe_height=data["safe_height"],
         )
         
         if "color_palette" in data:
