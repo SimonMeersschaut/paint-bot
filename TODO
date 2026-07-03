@@ -1,3 +1,6 @@
+- kortere strokes
+- k-nearest colors
+- stroke ordering
 - de edges worden nog raar ge-reendered
 - improve stroke generation zodat er minder strokes ge-declined worden
     -> Stroke length kan je verbeteren door in twee
