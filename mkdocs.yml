@@ -46,9 +46,9 @@ nav:
   - License: license.md
   - Stroke Generation Algorithm:
     - Overview: stroke_algorithm/overview.md
-    - Stroke Ordering: stroke_algorithm/stroke_ordering.md
     - Expanding: stroke_algorithm/stroke_expanding.md
     - Supervisor: stroke_algorithm/supervisor.md
+    - Stroke Ordering: stroke_algorithm/stroke_ordering.md
   - Hardware:
     - Overview: hardware/overview.md
     - 3D Prints: hardware/3d_prints.md
