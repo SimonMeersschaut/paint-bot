@@ -12,6 +12,16 @@ We use a Kalman Filter to accept the best strokes on the fly. We dynamically upd
 
 ![Normal Distribution](normal_distr.png)
 
+Let's plot this Kalman filter over time. In the plot below, you can see the mean of the normal
+distribution in black. Strokes below the mean are accepted and displayed with green dots.
+Strokes above the mean are colore red. 
+
+![kalman filter](kalman_filter.png)
+
+We conclude from the figure that without this filter
+strokes with very high color error would make it to the end result.
+Thus, the kalman filter indeed is useful.
+
 ## General Settings
 
 | Property Name | Description |
