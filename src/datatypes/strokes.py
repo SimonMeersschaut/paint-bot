@@ -114,6 +114,34 @@ class StrokeSequence:
 
         # Update the canvas bounds to complete the resize operation
         self.image_size = dimensions
+    
+    def sort(self) -> None:
+        """Orders the strokes based on color.
+        
+        Groups all strokes by their color, preserving the order of the 
+        colors based on their first appearance in the sequence.
+        """
+        if not self.strokes:
+            return
+
+        # Dictionary to store lists of strokes grouped by color.
+        # Python 3.7+ dictionaries naturally preserve insertion order.
+        color_groups = {}
+        
+        for stroke in self.strokes:
+            # Ensure the color is a hashable tuple (handles lists/numpy arrays safely)
+            color_key = tuple(stroke.color)
+            
+            if color_key not in color_groups:
+                color_groups[color_key] = []
+            color_groups[color_key].append(stroke)
+            
+        # Reconstruct the flat list of strokes following the discovered color order
+        sorted_strokes = []
+        for color in color_groups:
+            sorted_strokes.extend(color_groups[color])
+            
+        self.strokes = sorted_strokes
 
 @dataclass
 class StrokePath:
