@@ -173,7 +173,7 @@ class StrokeGenerationSupervisor:
     @property
     def min_stroke_length_pixels(self) -> float:
         """The maximum length a stroke can have, algebraically."""
-        return 10
+        return 20
     
     @property
     def max_error_threshold(self) -> float:

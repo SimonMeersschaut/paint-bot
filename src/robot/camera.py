@@ -20,7 +20,7 @@ def take_picture():
         raise RuntimeError("Camera has not been started.")
 
     # Output file
-    output_dir = Path.home() / "timelapse"
+    output_dir = Path.home() / "paint-bot" / "timelapse"
     output_dir.mkdir(parents=True, exist_ok=True)
     filename = output_dir / f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
     cam.capture_file(str(filename))

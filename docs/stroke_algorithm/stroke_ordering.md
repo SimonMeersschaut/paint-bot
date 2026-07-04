@@ -12,6 +12,10 @@
 
     Moreover, travel distance between two subsequent strokes should also be minimized for a faster execution time.
 
+    Lastly, one should note that while drawing strokes the amount  of pigment on the brush decreases.
+    Indeed, that is the reason why we refill the brush every, say, 20 strokes.
+    Thus, brighter strokes should be placed later after a refill.
+
 
 ## Our Approach
 
@@ -56,6 +60,7 @@ In conclusion, these are the metrics we optimized:
 
 | Metric | Status |
 | :--- | :--- |
-| Far to near |  ✔️ (good enough) |
+| Far to near |  ❌ (very minimally) |
 | Minimal color change |  ✔️ |
 | Minimal travel distance |  ❌ |
+| Dark to bright |  ✔️ TODO |
