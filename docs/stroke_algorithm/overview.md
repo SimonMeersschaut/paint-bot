@@ -11,3 +11,5 @@ After a stopcriterion is met, we ask ourselves the question wether the generated
 A so called [Stroke Generation Supervisor](supervisor.md) will decide in real time if the stroke is accepted or not.
 
 ![segment stroke generation.png](segment_stroke_generation.png)
+
+After generating all strokes, we reorder them for optimal performance. See [stroke reordering](stroke_ordering).

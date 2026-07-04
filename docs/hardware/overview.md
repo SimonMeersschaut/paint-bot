@@ -16,7 +16,9 @@ A list of valid commands can be found below.
 The arduino then controlls its GPIO pins to tell the stepper motor drivers how often to step and in which direction.
 The stepper motor drivers will close the A and B loops of the physical stepper motor itself to make the stepper motors move.
 
-In order to hold the brush, some parts had to be 3d printed.
+In a later version, we changed the laptop for a Raspberry Pi 4B. See [raspberry pi](raspberry_pi.md) for more details on the configuration.
+
+In order to hold [the brush](brushes.md), some parts had to be 3d printed.
 See [3d prints](3d_prints.md).
 
 ## Part list
@@ -48,6 +50,72 @@ Some modifications to the Marlin source code were made. You can find the diff fi
 !!! failure "Reload when making changes"
     When making changes to the configuration file of the Marlin software, the changes will not take place
     immediatly after upload. Indeed, the program uses EEPROM to save settings into persistent memory. You need to send `$RST` in order to reset the settings.
+
+## TMC2208
+
+When plugging the stepper motors in the RAMPS shield, they should work right away. It might be necessary to place jumpers on the three pairs of pins on the shield, below the stepper motor to enable microstepping.
+
+If you want to control your `vref` voltage with a potentiometer,
+see <a href="https://wiki.fysetc.com/docs/TMC2208">fysetc</a>.
+
+
+!!! failure "Watch out with high voltage"
+    The potentiometer decides the voltage that goes to the stepper motors.
+    Rotating the potentiometer counterclockwise all the way will blow up the stepper motor controller. We had to find this out the hard way, but you dont have to.    
+
+Our stepper motors overheated after extensive use. After turning the potentiometeres clockwise, the problem seemed to be resolved.
+
+![TMC2208 potentiometer](tmc_2208_potentiometer.png)
+
+### Advanced settings
+
+You can also use the uart mode of the TMC2208 chip. See <a href="https://www.instructables.com/UART-This-Serial-Control-of-Stepper-Motors-With-th/">Instructables</a> on how to ebable UART mode. Note that you also have to make modifications to the Marlin software such as setting sthe drivers to `TMC2208`.
+
+
+When running `M122`, Marlin returns all settings of the chip.
+
+<details>
+    <summary>Click here to see the serial output.
+    </summary>
+
+```serial
+X	Y	Z	E
+Enabled		false	false	false	false
+Set current	400	400	400	800
+RMS current	718	718	718	1436
+MAX current	1012	1012	1012	2025
+Run current	12/31	12/31	12/31	25/31
+Hold current	6/31	6/31	0/31	12/31
+CS actual	0/31	0/31	0/31	0/31
+PWM scale
+vsense		0=.325	0=.325	0=.325	0=.325
+stealthChop	false	false	false	false
+msteps		256	256	256	256
+interp		false	false	false	false
+tstep		0	0	0	0
+PWM thresh.
+[mm/s]
+OT prewarn	false	false	false	false
+pwm scale sum	0	0	0	0
+pwm scale auto	0	0	0	0
+pwm offset auto	0	0	0	0
+pwm grad auto	0	0	0	0
+off time	0	0	0	0
+blank time	16	16	16	16
+hysteresis
+-end		-3	-3	-3	-3
+...
+Testing Y connection... Error: All LOW
+Testing Z connection... Error: All LOW
+Testing E connection... Error: All LOW
+ok
+```
+
+Note that this output means that UART mode is not enabled.
+
+</details>
+
+
 
 ## Commands
 

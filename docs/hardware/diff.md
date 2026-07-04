@@ -1,51 +1,52 @@
 # Diff Report
 
-Source: `diff.txt`
-
 ## Summary
 
 - Files changed: 4
-- Additions: 7
-- Deletions: 9
+- Additions: 11
+- Deletions: 13
 
 | File | Status | + | - |
 | --- | --- | ---: | ---: |
-| .gitignore | modified | 5 | 5 |
+| Marlin/Configuration.h | modified | 9 | 9 |
 | Marlin/src/pins/pins.h | modified | 0 | 2 |
 | ini/avr.ini | modified | 1 | 1 |
 | ini/samd21.ini | modified | 1 | 1 |
 
 ## File Details
 
-## .gitignore
+### Marlin/Configuration.h
 
-- Status: modified
-- Additions: 5
-- Deletions: 5
-
-<details>
-<summary>Patch metadata</summary>
-
-```text
-old mode 100755
-new mode 100644
-index 0e22a1a0ab..bbf1e495db 100644
---- a/Marlin/Configuration.h
-+++ b/Marlin/Configuration.h
-```
-
-</details>
-
-<details open>
-<summary>Unified diff</summary>
+- Additions: 9
+- Deletions: 9
 
 ```diff
-diff --git a/.gitignore b/.gitignore
-old mode 100755
-new mode 100644
-index 0e22a1a0ab..bbf1e495db 100644
+diff --git a/Marlin/Configuration.h b/Marlin/Configuration.h
+index 0e22a1a0ab..55c3962a91 100644
 --- a/Marlin/Configuration.h
 +++ b/Marlin/Configuration.h
+@@ -161,9 +161,9 @@
+  *          TMC5130, TMC5130_STANDALONE, TMC5160, TMC5160_STANDALONE
+  * :['A4988', 'A5984', 'DRV8825', 'LV8729', 'TB6560', 'TB6600', 'TMC2100', 'TMC2130', 'TMC2130_STANDALONE', 'TMC2160', 'TMC2160_STANDALONE', 'TMC2208', 'TMC2208_STANDALONE', 'TMC2209', 'TMC2209_STANDALONE', 'TMC26X', 'TMC26X_STANDALONE', 'TMC2660', 'TMC2660_STANDALONE', 'TMC5130', 'TMC5130_STANDALONE', 'TMC5160', 'TMC5160_STANDALONE']
+  */
+-#define X_DRIVER_TYPE  A4988
+-#define Y_DRIVER_TYPE  A4988
+-#define Z_DRIVER_TYPE  A4988
++#define X_DRIVER_TYPE  TMC2208
++#define Y_DRIVER_TYPE  TMC2208
++#define Z_DRIVER_TYPE  TMC2208
+ //#define X2_DRIVER_TYPE A4988
+ //#define Y2_DRIVER_TYPE A4988
+ //#define Z2_DRIVER_TYPE A4988
+@@ -175,7 +175,7 @@
+ //#define U_DRIVER_TYPE  A4988
+ //#define V_DRIVER_TYPE  A4988
+ //#define W_DRIVER_TYPE  A4988
+-#define E0_DRIVER_TYPE A4988
++#define E0_DRIVER_TYPE TMC2208
+ //#define E1_DRIVER_TYPE A4988
+ //#define E2_DRIVER_TYPE A4988
+ //#define E3_DRIVER_TYPE A4988
 @@ -1196,7 +1196,7 @@
   * Override with M92
   *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
@@ -60,7 +61,7 @@ index 0e22a1a0ab..bbf1e495db 100644
  //#define DISABLE_X
  //#define DISABLE_Y
 -//#define DISABLE_Z
-+#define DISABLE_Z
++#define DISABLE_Z // powr off when not used
  //#define DISABLE_I
  //#define DISABLE_J
  //#define DISABLE_K
@@ -86,27 +87,10 @@ index 0e22a1a0ab..bbf1e495db 100644
  //#define J_MIN_POS 0
 ```
 
-</details>
+### Marlin/src/pins/pins.h
 
-## Marlin/src/pins/pins.h
-
-- Status: modified
 - Additions: 0
 - Deletions: 2
-
-<details>
-<summary>Patch metadata</summary>
-
-```text
-index a59ef36d77..626a52a571 100644
---- a/Marlin/src/pins/pins.h
-+++ b/Marlin/src/pins/pins.h
-```
-
-</details>
-
-<details open>
-<summary>Unified diff</summary>
 
 ```diff
 diff --git a/Marlin/src/pins/pins.h b/Marlin/src/pins/pins.h
@@ -124,27 +108,10 @@ index a59ef36d77..626a52a571 100644
  #elif MB(BTT_SKR_PRO_V1_2)
 ```
 
-</details>
+### ini/avr.ini
 
-## ini/avr.ini
-
-- Status: modified
 - Additions: 1
 - Deletions: 1
-
-<details>
-<summary>Patch metadata</summary>
-
-```text
-index 5e7861037d..a0c6014481 100644
---- a/ini/avr.ini
-+++ b/ini/avr.ini
-```
-
-</details>
-
-<details open>
-<summary>Unified diff</summary>
 
 ```diff
 diff --git a/ini/avr.ini b/ini/avr.ini
@@ -162,27 +129,10 @@ index 5e7861037d..a0c6014481 100644
  board_build.f_cpu = 16000000L
 ```
 
-</details>
+### ini/samd21.ini
 
-## ini/samd21.ini
-
-- Status: modified
 - Additions: 1
 - Deletions: 1
-
-<details>
-<summary>Patch metadata</summary>
-
-```text
-index 8652f13ba9..f2acf829ff 100644
---- a/ini/samd21.ini
-+++ b/ini/samd21.ini
-```
-
-</details>
-
-<details open>
-<summary>Unified diff</summary>
 
 ```diff
 diff --git a/ini/samd21.ini b/ini/samd21.ini
@@ -199,5 +149,3 @@ index 8652f13ba9..f2acf829ff 100644
  [env:SAMD21_minitronics20]
  platform         = atmelsam
 ```
-
-</details>
