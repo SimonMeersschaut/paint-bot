@@ -12,7 +12,10 @@ git clone https://github.com/SimonMeersschaut/paint-bot.git
 # sudo apt install -y python3-pip
 # sudo apt install -y python3-setuptoold
 # sudo apt install -y python3-tk #tkinter
+# SSH
+ssh-keygen -t ed25519 -C "your_email@example.com"
+# open project
 cd paint-bot
-python3 setup.py
+# python3 setup.py
 code .
 ```
