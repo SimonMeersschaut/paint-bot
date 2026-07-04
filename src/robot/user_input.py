@@ -17,7 +17,7 @@ class RobotCalibrator:
     def _set_current_position(self, position: dict[str, float]) -> None:
         self.current_position = position.copy()
 
-    def input_position(self, query: str, color=False, ask_z=True):
+    def input_position(self, query: str, color=False, ask_z=True, initial_color: str = "#FFFFFF", master=None):
         """
         Opens an intuitive Tkinter window with sliders and a clickable 2D grid
         to control the printer coordinates live.
@@ -35,9 +35,9 @@ class RobotCalibrator:
         target_pos = self.current_position.copy()
         last_sent_pos = self.current_position.copy()
 
-        chosen_color = {"HEX": "#FFFFFF"}
+        chosen_color = {"HEX": initial_color}
 
-        root = tk.Tk()
+        root = tk.Toplevel(master) if master is not None else tk.Tk()
         root.title("Live Printer Controller")
 
         window_height = "580" if color else "520"
@@ -48,10 +48,16 @@ class RobotCalibrator:
         if ask_z:
             z_label_var = tk.StringVar(value=f"{target_pos['Z']:.1f}")
 
+        x_scale = None
+        y_scale = None
+        z_scale = None
+
         def update_from_sliders(*args):
-            target_pos["X"] = round(x_scale.get(), 1)
-            target_pos["Y"] = round(y_scale.get(), 1)
-            if ask_z:
+            if x_scale is not None:
+                target_pos["X"] = round(x_scale.get(), 1)
+            if y_scale is not None:
+                target_pos["Y"] = round(y_scale.get(), 1)
+            if ask_z and z_scale is not None:
                 target_pos["Z"] = round(z_scale.get(), 1)
 
             x_label_var.set(f"{target_pos['X']:.1f}")
@@ -83,7 +89,7 @@ class RobotCalibrator:
             canvas.create_line(cx, cy - 15, cx, cy + 15, fill="red", tags="crosshair")
 
         def choose_color_action():
-            color_code = colorchooser.askcolor(title="Select Filament/LED Color")
+            color_code = colorchooser.askcolor(color=chosen_color["HEX"], title="Select Filament/LED Color")
             if color_code[1]:
                 chosen_color["HEX"] = color_code[1]
                 color_preview.config(background=color_code[1])
@@ -185,7 +191,12 @@ class RobotCalibrator:
 
         update_canvas_crosshair()
         root.after(100, live_stream_loop)
-        root.mainloop()
+        if master is not None:
+            root.transient(master)
+            root.grab_set()
+            root.wait_window()
+        else:
+            root.mainloop()
 
         final_z = target_pos["Z"] if ask_z else self.current_position["Z"]
         final_coordinates = (target_pos["X"], target_pos["Y"], final_z)

@@ -53,7 +53,7 @@ class SerialPrinter(Printer):
                 self.connection = None
         
         self.send_command("M502") # Load settings from code (instead of EEPROM) 
-        self.send_command("G28") # Home
+        self.home()
         self.send_command("G90") # Absolute coordinates
         # self.send_command("$1=25") # remove power when a motor is idle
 
@@ -82,10 +82,7 @@ class SerialPrinter(Printer):
 
     def home(self):
         """Executes the GRBL homing cycle ($H)."""
-        print("Homing printer...")
-        # Note: GRBL requires homing to be enabled ($22=1) for $H to work
-        response = self.send_command("$H")
-        print(f"Homing response: {response}")
+        self.send_command("G28")
 
     def move_to(self, x: float = None, y: float = None, z: float = None, feed_rate: float = 1500):
         """

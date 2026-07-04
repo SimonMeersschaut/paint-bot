@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont
 
-def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.8, label=""):
+def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
     """Create a frame showing strokes up to a specified index with dimension annotations.
     
     Args:
