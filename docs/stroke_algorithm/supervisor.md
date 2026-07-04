@@ -4,7 +4,7 @@
 Our `Stroke Generation Supervisor` its main task will be to decide which strokes
 are accepted into the final result and which ones do not meet our quality requirements. See [Stroke Accepting](#stroke-accepting)
 On top of that, it will hold some basic settings such as 
-the attempts per segment, the target coverage and more. See [General Settings](#general-settings)
+the attempts per segment, the target coverage and more. See [General Settings](#general-settings).
 
 ## Stroke Accepting
 
