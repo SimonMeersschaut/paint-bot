@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import os
 import json
 
 
@@ -8,29 +7,6 @@ class StrokeSequence:
         self.strokes = []
         self.image_size = image_size
         self.unit = "mm"
-    
-    # def visualize(self):
-    #     """Display the visualization of the stroke sequence.
-        
-    #     Returns the final rendered image with all strokes painted.
-    #     """
-    #     from paintbot.visualisation import visualize_stroke_sequence
-    #     return visualize_stroke_sequence(self)
-    
-    # def animate(self):
-    #     """Create an animation video of the stroke sequence.
-        
-    #     Creates a video file showing strokes being painted in sequence.
-    #     """
-    #     from paintbot.visualisation import animate_stroke_sequence
-    #     if not os.path.exists("tmp"):
-    #         os.mkdir("tmp")
-    #     os.remove("tmp/animation.mp4")
-    #     animate_stroke_sequence(self)
-    #     try:
-    #         os.startfile("tmp/animation.mp4")
-    #     except (AttributeError, FileNotFoundError):
-    #         pass  # os.startfile is Windows-specific
     
     def save_to_json(self, filepath: str):
         """Streams the StrokeSequence to a JSON file to prevent high memory usage."""
@@ -114,38 +90,11 @@ class StrokeSequence:
 
         # Update the canvas bounds to complete the resize operation
         self.image_size = dimensions
-    
-    def sort(self) -> None:
-        """Orders the strokes based on color.
-        
-        Groups all strokes by their color, preserving the order of the 
-        colors based on their first appearance in the sequence.
-        """
-        if not self.strokes:
-            return
-
-        # Dictionary to store lists of strokes grouped by color.
-        # Python 3.7+ dictionaries naturally preserve insertion order.
-        color_groups = {}
-        
-        for stroke in self.strokes:
-            # Ensure the color is a hashable tuple (handles lists/numpy arrays safely)
-            color_key = tuple(stroke.color)
-            
-            if color_key not in color_groups:
-                color_groups[color_key] = []
-            color_groups[color_key].append(stroke)
-            
-        # Reconstruct the flat list of strokes following the discovered color order
-        sorted_strokes = []
-        for color in color_groups:
-            sorted_strokes.extend(color_groups[color])
-            
-        self.strokes = sorted_strokes
 
 @dataclass
 class StrokePath:
     color: tuple[int, int, int] # (r, g, b)
     path: list[tuple[int, int]]  # (x, y)
+    brightness = 0 # 0 = pure color, 255 = white
     brushWidth: int = 2
     # all dimensions (if not specified otherwise) are pixels

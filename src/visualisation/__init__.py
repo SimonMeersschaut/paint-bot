@@ -55,7 +55,8 @@ def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
             continue
             
         # Convert RGB to BGR for OpenCV
-        color_bgr = (stroke.color[2], stroke.color[1], stroke.color[0])
+        pure_color = np.array(stroke.color[2], stroke.color[1], stroke.color[0])
+        color_bgr = stroke.brightness * np.array(255, 255, 255) + (1 - stroke.brightness) * pure_color
         
         # Reshape path points into a compatible numpy matrix array
         pts = np.array(stroke.path, dtype=np.int32).reshape((-1, 1, 2))

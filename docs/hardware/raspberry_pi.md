@@ -17,7 +17,8 @@ sudo apt install -y ffmpeg
 sudo apt install -y python3-picamera2
 sudo apt install -y python3-serial
 sudo apt install -y python3-torch
-sudo python3 -m pip install transformers --break-system-packages # should be avoided; use a venv
+sudo apt install -y python3-skimage
+sudo apt install -y python3-opencv
 
 # SSH
 ssh-keygen -t ed25519 -C "simon.meersschaut@gmail.com"
