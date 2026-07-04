@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+import re
 import serial
+import serial.tools.list_ports
 import time
 
 # Defining the abstract base class based on your snippet
@@ -24,12 +26,17 @@ class Printer(ABC):
     def move_relative(self, x=None, y=None, z=None, feed_rate=1500):
         pass
 
+    @abstractmethod
+    def get_position(self):
+        pass
+
 
 class SerialPrinter(Printer):
     def __init__(self, baudrate: int = 250000):
         """
         Initializes the serial printer configuration.
-        Default GRBL baudrate is typically 115200.
+        Default baudrate is typically 115200.
+        The printer is configured with Marlin Software.
         """
         self.baudrate = baudrate
         self.connection = None
@@ -37,25 +44,30 @@ class SerialPrinter(Printer):
 
     def connect(self):
         """Establishes connection to the GRBL controller and wakes it up."""
-        for port in range(10):
-            try:
-                print(f"Connecting to GRBL on {port}...")
-                self.connection = serial.Serial(f"COM{port}", self.baudrate, timeout=0.5)
-                
-                # GRBL resets on serial connection. Give it a moment to boot up.
-                print("Waiting...")
-                time.sleep(2)
-                
-                print("Connected successfully.")
-                self.port = port
-                break
-            except serial.SerialException as e:
-                self.connection = None
-        
-        self.send_command("M502") # Load settings from code (instead of EEPROM) 
-        self.home()
-        self.send_command("G90") # Absolute coordinates
-        # self.send_command("$1=25") # remove power when a motor is idle
+        for port in serial.tools.list_ports.comports():
+            if port.manufacturer == "Arduino (www.arduino.cc)": # make sure we are opening the correct port
+                try:
+                    print(f"Connecting to GRBL on {port.device}...")
+                    self.connection = serial.Serial(port.device, self.baudrate, timeout=1.0) # Increased timeout slightly for initial shake
+                    
+                    time.sleep(2)
+                    self.connection.reset_input_buffer()
+
+                    print("Connected successfully.")
+                    self.port = port
+                    
+                    if self.connection and self.connection.is_open:
+                        self.send_command("M502") 
+                        self.home()
+                        self.send_command("G90")
+                        return
+                except serial.SerialException as e:
+                    self.connection = None
+                    print("Not connected!")
+                    print(e)
+                    exit()
+        print("No connection found!")
+        exit()
 
     def send_command(self, command: str) -> str:
         """
@@ -67,18 +79,64 @@ class SerialPrinter(Printer):
 
         # Clean command and ensure it ends with a newline character
         cmd = command.strip() + "\r\n"
+        self.connection.reset_input_buffer()
         self.connection.write(cmd.encode('utf-8'))
         
         response_lines = []
         while True:
             line = self.connection.readline().decode('utf-8').strip()
             if line:
-                response_lines.append(line)
-                # GRBL acknowledges completion/receipt with 'ok' or an 'error'
-                if line.lower() == 'ok' or line.lower().startswith('error'):
+                # Marlin acknowledges completion/receipt with 'ok' or an 'error'
+                if line.lower().startswith("ok") or line.lower().startswith('error'):
                     break
+                else:
+                    response_lines.append(line)
         
         return "\n".join(response_lines)
+
+    def wait_for_arrival(self, x, y, z):
+        target_x, target_y, target_z = x, y, z
+        timeout_seconds = 60.0
+        poll_interval_seconds = 0.2
+        tolerance = 0.05
+
+        deadline = time.monotonic() + timeout_seconds
+        self.move_to(x, y, z)
+        while True:
+            current_x, current_y, current_z = self.get_position()
+            print(current_x, current_y, current_z)
+
+            arrived = True
+            if target_x is not None and abs(current_x - target_x) > tolerance:
+                arrived = False
+            if target_y is not None and abs(current_y - target_y) > tolerance:
+                arrived = False
+            if target_z is not None and abs(current_z - target_z) > tolerance:
+                arrived = False
+
+            if arrived:
+                return current_x, current_y, current_z
+
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Printer did not reach target position ({target_x}, {target_y}, {target_z})"
+                )
+
+            time.sleep(poll_interval_seconds)
+
+    def get_position(self):
+        """Query the current printer position using a M114."""
+        
+        response = self.send_command("M114")
+
+        match = re.search(
+            r"X:([+-]?\d+(?:\.\d+)?)\s+Y:([+-]?\d+(?:\.\d+)?)\s+Z:([+-]?\d+(?:\.\d+)?)",
+            response,
+        )
+        if not match:
+            raise ValueError(f"Could not parse position from printer response: {response}")
+
+        return tuple(float(value) for value in match.groups())
 
     def home(self):
         """Executes the GRBL homing cycle ($H)."""
@@ -116,6 +174,11 @@ class SerialPrinter(Printer):
             print("No offsets provided for relative movement.")
             return
 
+        current_x, current_y, current_z = self.get_position()
+        target_x = current_x + x if x is not None else None
+        target_y = current_y + y if y is not None else None
+        target_z = current_z + z if z is not None else None
+
         # 1. Switch to Relative mode (G91) and perform linear move (G1)
         self.send_command("G91")
         gcode = "G1"
@@ -133,6 +196,8 @@ class SerialPrinter(Printer):
         
         # 2. Immediately restore state to Absolute mode (G90) so we don't break other routines
         self.send_command("G90")
+
+        self.wait_for_arrival(target_x, target_y, target_z)
         
         return response
 

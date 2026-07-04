@@ -12,10 +12,18 @@ git clone https://github.com/SimonMeersschaut/paint-bot.git
 # sudo apt install -y python3-pip
 # sudo apt install -y python3-setuptoold
 # sudo apt install -y python3-tk #tkinter
+sudo apt install -y python3-picamera2
+sudo apt install -y ffmpeg
+sudo apt install -y python3-serial
+
 # SSH
 ssh-keygen -t ed25519 -C "simon.meersschaut@gmail.com"
 git config --global user.name "Simon Meersschaut"
 git config --global user.email "simon.meersschaut@gmail.com"
+
+# Code
+sudo apt install -y python3-ipykernel
+
 # open project
 cd paint-bot
 # python3 setup.py

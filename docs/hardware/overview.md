@@ -126,8 +126,12 @@ We shortly go over the most important commands. See the source for a full list o
 | :--- | :--- |
 | `G0` / `G1` | **Move** – Move to a specified position in 3d space. |
 | `G28` | **Home** – Do a calibration routine to reset the relative position to the hard limits. |
+| `M114` | **Get position** – Prints the current position of the printer in realtime. 
+We wait by taking a picture until the printer has reached a designated position. |
 
 <sub>Source: <a href="https://reprap.org/wiki/G-code">reprap: G-code</a></sub>
+
+The following commands are specific for GRBL, not Marlin. We do no make use of them.
 
 | GRBL Command | Description |
 | :--- | :--- |
