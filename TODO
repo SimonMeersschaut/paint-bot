@@ -1,16 +1,15 @@
-- kortere strokes
-- k-nearest colors
-- stroke ordering
-- de edges worden nog raar ge-reendered
-- improve stroke generation zodat er minder strokes ge-declined worden
-    -> Stroke length kan je verbeteren door in twee
+MAIN:
+- Stroom verlagen
+
+- DOCS:
+    - stroke ordering docs
+    - TMC2208 stroom
+- algo verbeteren (kleuren)
+
+
+- ripy timelapse
+
+
+- de edges worden nog raar ge-rendered
+- Stroke length kan je verbeteren door in twee
     richtingen te expanden (!)
-
-- niceness:
-    ev. pre-parameter-fitting:
-    beschouw random segmenten en fit de parameters voor een optimale stroke generation
-
-
-FINAL:
-
-- Alles samenzetten in een execution script
