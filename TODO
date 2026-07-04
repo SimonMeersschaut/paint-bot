@@ -2,7 +2,7 @@ MAIN:
 - Stroom verlagen
 
 - DOCS:
-    - stroke ordering docs
+    # - stroke ordering docs
     - TMC2208 stroom
 - algo verbeteren (kleuren)
 

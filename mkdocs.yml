@@ -51,7 +51,10 @@ nav:
     - Stroke Ordering: stroke_algorithm/stroke_ordering.md
   - Hardware:
     - Overview: hardware/overview.md
+    - Raspberry Pi: hardware/raspberry_pi.md
     - 3D Prints: hardware/3d_prints.md
+  - Execution:
+    - Overview: execution/overview.md
   - API Reference:
     - Datatypes: api/datatypes.md
     - StrokeSequence: api/strokesequence.md

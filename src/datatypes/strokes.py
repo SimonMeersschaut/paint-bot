@@ -9,28 +9,28 @@ class StrokeSequence:
         self.image_size = image_size
         self.unit = "mm"
     
-    def visualize(self):
-        """Display the visualization of the stroke sequence.
+    # def visualize(self):
+    #     """Display the visualization of the stroke sequence.
         
-        Returns the final rendered image with all strokes painted.
-        """
-        from paintbot.visualisation import visualize_stroke_sequence
-        return visualize_stroke_sequence(self)
+    #     Returns the final rendered image with all strokes painted.
+    #     """
+    #     from paintbot.visualisation import visualize_stroke_sequence
+    #     return visualize_stroke_sequence(self)
     
-    def animate(self):
-        """Create an animation video of the stroke sequence.
+    # def animate(self):
+    #     """Create an animation video of the stroke sequence.
         
-        Creates a video file showing strokes being painted in sequence.
-        """
-        from paintbot.visualisation import animate_stroke_sequence
-        if not os.path.exists("tmp"):
-            os.mkdir("tmp")
-        os.remove("tmp/animation.mp4")
-        animate_stroke_sequence(self)
-        try:
-            os.startfile("tmp/animation.mp4")
-        except (AttributeError, FileNotFoundError):
-            pass  # os.startfile is Windows-specific
+    #     Creates a video file showing strokes being painted in sequence.
+    #     """
+    #     from paintbot.visualisation import animate_stroke_sequence
+    #     if not os.path.exists("tmp"):
+    #         os.mkdir("tmp")
+    #     os.remove("tmp/animation.mp4")
+    #     animate_stroke_sequence(self)
+    #     try:
+    #         os.startfile("tmp/animation.mp4")
+    #     except (AttributeError, FileNotFoundError):
+    #         pass  # os.startfile is Windows-specific
     
     def save_to_json(self, filepath: str):
         """Streams the StrokeSequence to a JSON file to prevent high memory usage."""
