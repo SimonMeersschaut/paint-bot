@@ -107,11 +107,6 @@ def execute_stroke(printer, robot_calibration, stroke_sequence, index: int, up_h
     # 2. Extract the specific stroke data
     stroke = stroke_sequence.strokes[index]
     
-    # Safety check: ensure the stroke path actually has points
-    if not stroke.path:
-        print(f"Stroke at index {index} has an empty path. Skipping.")
-        return
-
     # 3. Pull the starting coordinate
     start_x, start_y = stroke.path[0]
     start_x += robot_calibration.bottom_left[0]

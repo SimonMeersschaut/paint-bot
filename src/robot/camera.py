@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from typing import Optional
 
+OUTPUT_DIR = Path("timelapse")
 cam = None
 
 try:
@@ -32,9 +33,8 @@ def take_picture():
         raise RuntimeError("Camera has not been started.")
 
     # Output file
-    output_dir = Path.home() / "paint-bot" / "timelapse"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    filename = output_dir / f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    # OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    filename = OUTPUT_DIR / f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
     cam.capture_file(str(filename))
     print(f"Saved: {filename}")
 
@@ -52,13 +52,12 @@ def create_timelapse(fps: int = 30):
     if cam == False:
         return
     
-    output_dir = Path.home() / "timelapse"
-    image_paths = sorted(output_dir.glob("photo_*.jpg"))
+    image_paths = sorted(OUTPUT_DIR.glob("photo_*.jpg"))
 
     if not image_paths:
-        raise FileNotFoundError(f"No images found in {output_dir}")
+        raise FileNotFoundError(f"No images found in {OUTPUT_DIR}")
 
-    output_file = output_dir / f"timelapse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+    output_file = OUTPUT_DIR / f"timelapse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
 
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:

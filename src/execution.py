@@ -1,4 +1,4 @@
-from datatypes import RobotCalibration, StrokeSequence
+from datatypes import RobotCalibration, StrokeSequence, StrokePath, LoadBrush
 from robot import SerialPrinter, Printer
 from robot import load_brush, execute_stroke, water_brush
 from robot import start, close, take_picture, create_timelapse
@@ -25,22 +25,25 @@ def hex_to_rgb(hex_str):
     hex_str = hex_str.lstrip("#")
     return [int(hex_str[i : i + 2], 16) for i in (0, 2, 4)]
 
-current_color = None
-current_color_repetition = 0
+
 for index in range(0, len(my_stroke_sequence.strokes)):   # continue where ended
     print(f"Executing index: {index}")
-    cleaning_needed: bool = current_color != my_stroke_sequence.strokes[index].color
-    color_change_needed: bool = current_color_repetition >= 30
-    if cleaning_needed or color_change_needed:
-        current_color = my_stroke_sequence.strokes[index].color
-        current_color_repetition = 0
+    command = my_stroke_sequence.strokes[index]
+    if type(command) == StrokePath:
+        execute_stroke(
+            printer=printer,
+            robot_calibration=my_calibration,
+            stroke_sequence=my_stroke_sequence,
+            index=index,
+            up_height = 4
+        )
+    elif type(command) == LoadBrush:
         # Gets the index of the current color in the color palette
         color_index = [
             index
             for index, entry in enumerate(my_calibration.color_palette.color_positions)
-            if list(hex_to_rgb(entry["color"])) == list(current_color)
+            if list(hex_to_rgb(entry["color"])) == list(command.color)
         ][0]
-
         # re-water the brush
         water_brush(printer, my_calibration, down_turns=5)
         printer.wait_for_arrival(
@@ -52,16 +55,11 @@ for index in range(0, len(my_stroke_sequence.strokes)):   # continue where ended
         take_picture()
         # re-load brush
         load_brush(printer, my_calibration, color_index, down_turns=3)
-
-    execute_stroke(
-        printer=printer,
-        robot_calibration=my_calibration,
-        stroke_sequence=my_stroke_sequence,
-        index=index,
-        up_height = 4
-    )
-
-    current_color_repetition += 1
+    else:
+        raise ValueError("Type not found.")
+    
+    with open("log", 'a') as f:
+        f.write(f"{index}\n")
 
 
 water_brush(printer, my_calibration)

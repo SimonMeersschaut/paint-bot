@@ -45,7 +45,7 @@ class SerialPrinter(Printer):
     def connect(self):
         """Establishes connection to the GRBL controller and wakes it up."""
         for port in serial.tools.list_ports.comports():
-            # if port.manufacturer == "Arduino (www.arduino.cc)": # make sure we are opening the correct port
+            if port.manufacturer == "Arduino (www.arduino.cc)": # make sure we are opening the correct port
                 try:
                     print(f"Connecting to GRBL on {port.device}...")
                     self.connection = serial.Serial(port.device, self.baudrate, timeout=1.0) # Increased timeout slightly for initial shake
