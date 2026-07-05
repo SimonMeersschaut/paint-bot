@@ -21,6 +21,7 @@ my_stroke_sequence.save_to_json("data/resized_stroke_sequence.json")
 
 ## Execute Stroke
 def hex_to_rgb(hex_str):
+    """#AABBCC"""
     hex_str = hex_str.lstrip("#")
     return [int(hex_str[i : i + 2], 16) for i in (0, 2, 4)]
 
