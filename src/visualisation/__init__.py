@@ -6,10 +6,6 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm #  progress bar
 
-import numpy as np
-import cv2
-from PIL import Image, ImageDraw, ImageFont
-
 def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
     """Create a frame showing strokes up to a specified index with dimension annotations.
     
@@ -48,15 +44,21 @@ def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
     upper_bound = min(max(stroke_index + 1, 0), len(stroke_sequence.strokes))
     
     for i in range(start_index, upper_bound):
-        stroke = stroke_sequence.strokes[i]
+        command = stroke_sequence.strokes[i]
+
+        if hasattr(command, 'path'): #  is StrokePath:
+            stroke = command
+        else:
+            continue # skip LoadBrush
         
         # Guard against empty paths
         if not stroke.path or len(stroke.path) < 2:
             continue
             
         # Convert RGB to BGR for OpenCV
-        pure_color = np.array(stroke.color[2], stroke.color[1], stroke.color[0])
-        color_bgr = stroke.brightness * np.array(255, 255, 255) + (1 - stroke.brightness) * pure_color
+        pure_color = np.array([stroke.color[2], stroke.color[1], stroke.color[0]])
+        color_bgr = (1 - stroke.pigment) * np.array([255, 255, 255]) + (stroke.pigment) * pure_color
+        color_bgr = color_bgr.tolist()
         
         # Reshape path points into a compatible numpy matrix array
         pts = np.array(stroke.path, dtype=np.int32).reshape((-1, 1, 2))
@@ -185,6 +187,8 @@ def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
     return annotated_frame
 
 def calculate_stroke_duration(stroke_sequence, i, length_per_seconds:float):
+    if not hasattr(stroke_sequence.strokes[i], 'path'):
+        return 0 # TODO calculate loading time
     points = np.array(stroke_sequence.strokes[i].path)
 
     # Calculate differences between consecutive points: (dx, dy)

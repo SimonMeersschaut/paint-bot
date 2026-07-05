@@ -19,15 +19,8 @@ class StrokeSequence:
             
             # Stream out individual strokes
             num_strokes = len(self.strokes)
-            for idx, stroke in enumerate(self.strokes):
-                stroke_dict = {
-                    "color": stroke.color,
-                    "brushWidth": stroke.brushWidth,
-                    "path": stroke.path
-                }
-                
-                # Manual formatting/indentation to keep the file structure valid
-                stroke_json = json.dumps(stroke_dict)
+            for idx, command in enumerate(self.strokes):
+                stroke_json = command.to_json()
                 comma = "," if idx < num_strokes - 1 else ""
                 f.write(f"    {stroke_json}{comma}\n")
                 
@@ -95,6 +88,27 @@ class StrokeSequence:
 class StrokePath:
     color: tuple[int, int, int] # (r, g, b)
     path: list[tuple[int, int]]  # (x, y)
-    brightness = 0 # 0 = pure color, 255 = white
+    pigment: float # 1 = pure color, 0 = white
     brushWidth: int = 2
     # all dimensions (if not specified otherwise) are pixels
+
+    def to_json(self):
+        return json.dumps({
+            "color": list(int(c) for c in self.color),
+            "pigment": round(float(self.pigment), 4),
+            "path": self.path,
+            # "brushWidth": float(self.brushWidth)
+        })
+
+@dataclass
+class LoadBrush:
+    color: tuple[int, int, int]
+    pigment: float
+    deep_clean: bool
+
+    def to_json(self):
+        return json.dumps({
+            "color": self.color,
+            "pigment": round(float(self.pigment), 4),
+            "deep_clean": self.deep_clean,
+        })
