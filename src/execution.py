@@ -26,7 +26,9 @@ def hex_to_rgb(hex_str):
     return [int(hex_str[i : i + 2], 16) for i in (0, 2, 4)]
 
 
-for index in range(0, len(my_stroke_sequence.strokes)):   # continue where ended
+printer.move_to(z=my_calibration.safe_height)
+
+for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where ended
     print(f"Executing index: {index}")
     command = my_stroke_sequence.strokes[index]
     if type(command) == StrokePath:
@@ -35,7 +37,7 @@ for index in range(0, len(my_stroke_sequence.strokes)):   # continue where ended
             robot_calibration=my_calibration,
             stroke_sequence=my_stroke_sequence,
             index=index,
-            up_height = 4
+            up_height = 7
         )
     elif type(command) == LoadBrush:
         # Gets the index of the current color in the color palette
@@ -46,7 +48,7 @@ for index in range(0, len(my_stroke_sequence.strokes)):   # continue where ended
         ][0]
         # re-water the brush
         water_brush(printer, my_calibration, down_turns=5)
-        printer.wait_for_arrival(
+        printer.move_and_wait(
             x=my_calibration.water_reservoir[0],
             y=my_calibration.water_reservoir[1],
             z=my_calibration.safe_height,

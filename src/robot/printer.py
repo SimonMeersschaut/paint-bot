@@ -23,10 +23,6 @@ class Printer(ABC):
         pass
 
     @abstractmethod
-    def move_relative(self, x=None, y=None, z=None, feed_rate=1500):
-        pass
-
-    @abstractmethod
     def get_position(self):
         pass
 
@@ -94,7 +90,7 @@ class SerialPrinter(Printer):
         
         return "\n".join(response_lines)
 
-    def wait_for_arrival(self, x, y, z):
+    def move_and_wait(self, x, y, z):
         target_x, target_y, target_z = x, y, z
         timeout_seconds = 60.0
         poll_interval_seconds = 0.2
@@ -163,42 +159,6 @@ class SerialPrinter(Printer):
         gcode += f" F{feed_rate}"
         
         response = self.send_command(gcode)
-        return response
-
-    def move_relative(self, x: float = None, y: float = None, z: float = None, feed_rate: float = 1500):
-        """
-        Moves relative to the current position by the specified offsets.
-        Toggles G91 for the move, then reverts to G90 for state safety.
-        """
-        if x is None and y is None and z is None:
-            print("No offsets provided for relative movement.")
-            return
-
-        current_x, current_y, current_z = self.get_position()
-        target_x = current_x + x if x is not None else None
-        target_y = current_y + y if y is not None else None
-        target_z = current_z + z if z is not None else None
-
-        # 1. Switch to Relative mode (G91) and perform linear move (G1)
-        self.send_command("G91")
-        gcode = "G1"
-        
-        if x is not None:
-            gcode += f" X{x:.3f}"
-        if y is not None:
-            gcode += f" Y{y:.3f}"
-        if z is not None:
-            gcode += f" Z{z:.3f}"
-            
-        gcode += f" F{feed_rate}"
-        
-        response = self.send_command(gcode)
-        
-        # 2. Immediately restore state to Absolute mode (G90) so we don't break other routines
-        self.send_command("G90")
-
-        self.wait_for_arrival(target_x, target_y, target_z)
-        
         return response
 
     def disconnect(self):
