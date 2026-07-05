@@ -63,20 +63,21 @@ class StrokeSequence:
         scale_brush = (scale_x + scale_y) / 2.0
 
         # Update each stroke inline
-        for stroke in self.strokes:
-            # 1. Scale coordinates (x, y)
-            scaled_path = []
-            for x, y in stroke.path:
-                # Keeping as float or round() depending on precision needs. 
-                # Since coordinates default to pixels, round() is generally safest.
-                scaled_x = round(x * scale_x)
-                scaled_y = round(y * scale_y)
-                scaled_path.append((scaled_x, scaled_y))
-            
-            stroke.path = scaled_path
+        for command in self.strokes:
+            if type(command) == StrokePath:
+                # 1. Scale coordinates (x, y)
+                scaled_path = []
+                for x, y in command.path:
+                    # Keeping as float or round() depending on precision needs. 
+                    # Since coordinates default to pixels, round() is generally safest.
+                    scaled_x = round(x * scale_x)
+                    scaled_y = round(y * scale_y)
+                    scaled_path.append((scaled_x, scaled_y))
+                
+                command.path = scaled_path
 
-            # 2. Scale the brush stroke thickness (ensuring it never drops below 1 pixel)
-            stroke.brushWidth = max(1, round(stroke.brushWidth * scale_brush))
+                # 2. Scale the brush stroke thickness (ensuring it never drops below 1 pixel)
+                command.brushWidth = max(1, round(command.brushWidth * scale_brush))
 
         # Update the canvas bounds to complete the resize operation
         self.image_size = dimensions
@@ -110,12 +111,12 @@ class StrokePath(Command):
         return json.dumps({
             "type": self.get_type(),
             "color": list(int(c) for c in self.color),
-            "pigment": round(float(self.pigment), 4),
+            # "pigment": round(float(self.pigment), 4),
             "path": self.path,
             # "brushWidth": float(self.brushWidth)
         })
 
-    def load_from_json(self, data: dict) -> object:
+    def load_from_json(data: dict) -> object:
         return StrokePath(
             color = data["color"],
             path = data["path"],
@@ -137,10 +138,10 @@ class LoadBrush(Command):
             "deep_clean": self.deep_clean,
         })
 
-    def load_from_json(self, data: dict) -> object:
+    def load_from_json(data: dict) -> object:
         return LoadBrush(
             color = data["color"],
-            path = data["path"],
+            pigment = data["pigment"],
             deep_clean = data["deep_clean"],
             # brushWidth=
         )

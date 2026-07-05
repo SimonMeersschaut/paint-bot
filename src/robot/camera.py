@@ -10,13 +10,13 @@ try:
     from picamera2 import Picamera2
     cam = None
 except ModuleNotFoundError:
-    input("Warning: camera not found, continue without?")
+    print("Warning: camera not found, continue without?")
     cam = False
 
 
 def start():
     global cam
-    
+
     if cam == False:
         return
     cam = Picamera2()
