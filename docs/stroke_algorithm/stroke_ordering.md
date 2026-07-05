@@ -24,9 +24,33 @@ Thus, brighter strokes should be placed later after a refill.
 
 Let's first note that there are many different ways to order the strokes, and that our approach is *not* the best solution.
 
+Here's an overview of the stroke ordering.
+First, all strokes are partitioned in what we call "color buckets", then each bucket is sorted by it's pigment. If that's not clear yet, dont worry. That's why we explain both steps in detail below.
+
 ![Overview](reordering_overview.png)
 
+First the strokes are partitioned. For this, we made sure that the stroke generation algorithm only used colors that are available
+in our physical color palette.
+Thus we need a finite amount of buckets,
+12 for our color palette.
+
+This partitioning is necessary to minimize the times we change the brush color, which costs a lot of time. Plus, changing color, no matter how extensive, will never work perfectly; there will always be some of the previous color left on the pencil. It is thus necessary to execute all of these buckets after one another, with no inverleaving.
+We can, however, sort the order in which a
+single bucket is executed. This is what we call *bucket ordering*.
+
 ![Bucket Partitioning](bucket_partitioning.png)
+
+As already mentioned, we dont want to
+repetitively load our brush between
+every single stroke. It would be nice if
+we could do this only every, say, 20 strokes.
+But, keep in mind that the pigment on our brush degraded over strokes. This doesnt have to be a downside though. Quite the oposite, we can order all strokes from more to less pigment. Then we place the stroke with most pigment on the start of the first queue. The
+second most stroke is placed at the start of the second queue etc. We create 
+$ \lceil \frac{ \text{\#strokes} }{ 20 } \rceil$ queues, so that
+the queues are almost completely filled, 
+and all queues have no more than 20 strokes.
+
+
 
 ![Bucket Ordering](bucket_ordering.png)
 
