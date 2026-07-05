@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import json
+from abc import ABC, abstractclassmethod
 
 
 class StrokeSequence:
@@ -37,13 +38,9 @@ class StrokeSequence:
         sequence = cls(image_size=tuple(data["image_size"]))
         sequence.unit = data.get("dimension_name", "mm")
         
-        for s_data in data.get("strokes", []):
-            stroke = StrokePath(
-                color=tuple(s_data["color"]),
-                path=[tuple(pt) for pt in s_data["path"]],
-                brushWidth=s_data.get("brushWidth", 2)
-            )
-            sequence.strokes.append(stroke)
+        for data in data.get("strokes", []):
+            command = Command.load_from_json(data)
+            sequence.strokes.append(command)
             
         return sequence
 
@@ -84,8 +81,25 @@ class StrokeSequence:
         # Update the canvas bounds to complete the resize operation
         self.image_size = dimensions
 
+class Command(ABC):
+    
+    @abstractclassmethod
+    def to_json(self) -> dict:
+        ...
+    
+    def load_from_json(data: dict) -> object:
+        if data["type"] == StrokePath.__name__:
+            return StrokePath.load_from_json(data)
+        elif data["type"] == LoadBrush.__name__:
+            return LoadBrush.load_from_json(data)
+        else:
+            raise ValueError("Type not found.")
+    
+    def get_type(self):
+        return type(self).__name__
+
 @dataclass
-class StrokePath:
+class StrokePath(Command):
     color: tuple[int, int, int] # (r, g, b)
     path: list[tuple[int, int]]  # (x, y)
     pigment: float # 1 = pure color, 0 = white
@@ -94,21 +108,39 @@ class StrokePath:
 
     def to_json(self):
         return json.dumps({
+            "type": self.get_type(),
             "color": list(int(c) for c in self.color),
             "pigment": round(float(self.pigment), 4),
             "path": self.path,
             # "brushWidth": float(self.brushWidth)
         })
 
+    def load_from_json(self, data: dict) -> object:
+        return StrokePath(
+            color = data["color"],
+            path = data["path"],
+            pigment = None,
+            # brushWidth=
+        )
+
 @dataclass
-class LoadBrush:
+class LoadBrush(Command):
     color: tuple[int, int, int]
     pigment: float
     deep_clean: bool
 
     def to_json(self):
         return json.dumps({
+            "type": self.get_type(),
             "color": self.color,
             "pigment": round(float(self.pigment), 4),
             "deep_clean": self.deep_clean,
         })
+
+    def load_from_json(self, data: dict) -> object:
+        return LoadBrush(
+            color = data["color"],
+            path = data["path"],
+            deep_clean = data["deep_clean"],
+            # brushWidth=
+        )

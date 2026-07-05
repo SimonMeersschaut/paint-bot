@@ -4,18 +4,30 @@ import shutil
 import subprocess
 from typing import Optional
 
-from picamera2 import Picamera2
+cam = None
 
-cam: Optional[Picamera2] = None
+try:
+    from picamera2 import Picamera2
+    cam = None
+except ModuleNotFoundError:
+    input("Warning: camera not found, continue without?")
+    cam = False
+
 
 def start():
     global cam
+    
+    if cam == False:
+        return
     cam = Picamera2()
     config = cam.create_still_configuration()
     cam.configure(config)
     cam.start()
 
 def take_picture():
+    if cam == False:
+        return
+    
     if cam is None:
         raise RuntimeError("Camera has not been started.")
 
@@ -29,11 +41,17 @@ def take_picture():
 def close():
     global cam
 
+    if cam == False:
+        return
+
     if cam is not None:
         cam.close()
         cam = None
 
 def create_timelapse(fps: int = 30):
+    if cam == False:
+        return
+    
     output_dir = Path.home() / "timelapse"
     image_paths = sorted(output_dir.glob("photo_*.jpg"))
 
