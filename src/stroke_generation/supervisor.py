@@ -169,11 +169,6 @@ class StrokeGenerationSupervisor:
     def max_stroke_list_length(self) -> int:
         """The maximum length a list can have."""
         return 30
-
-    @property
-    def min_stroke_length_pixels(self) -> float:
-        """The maximum length a stroke can have, algebraically."""
-        return 20
     
     @property
     def max_error_threshold(self) -> float:
@@ -185,9 +180,4 @@ class StrokeGenerationSupervisor:
     def min_stroke_coverage_score(self) -> float:
         """The minimum stroke score a stroke must have."""
         return .10
-
-    @property
-    def gradient_step_size(self) -> float:
-        """The step size for iterative stroke generation."""
-        return 1
     
