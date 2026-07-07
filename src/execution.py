@@ -2,10 +2,21 @@ from datatypes import RobotCalibration, StrokeSequence, StrokePath, LoadBrush
 from robot import SerialPrinter, Printer
 from robot import load_brush, execute_stroke, water_brush
 from robot import start, close, take_picture, create_timelapse
+import sqlite3
+from datetime import datetime
 
 
 printer: Printer = SerialPrinter()
 printer.connect()
+
+# SQLite progress DB
+conn = sqlite3.connect('data/progress.db')
+conn.execute('''CREATE TABLE IF NOT EXISTS progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stroke_index INTEGER NOT NULL,
+    ts TEXT NOT NULL
+)''')
+conn.commit()
 
 start() # camera
 
@@ -60,11 +71,15 @@ for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where 
     else:
         raise ValueError("Type not found.")
     
-    with open("log", 'a') as f:
-        f.write(f"{index}\n")
+    # Log progress to sqlite
+    conn.execute("INSERT INTO progress (stroke_index, ts) VALUES (?, ?)", (index, datetime.utcnow().isoformat()))
+    conn.commit()
 
 
 water_brush(printer, my_calibration)
+
+# close DB
+conn.close()
 
 # Close camera and create timelapse
 close()
