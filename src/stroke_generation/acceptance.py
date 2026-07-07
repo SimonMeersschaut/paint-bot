@@ -2,10 +2,7 @@ import numpy as np
 import cv2
 from datatypes import StrokePath
 from .supervisor import Events
-
-# Acceptance-related constants
-COLOR_WEIGHTS = np.array([0.30, 0.59, 0.11], dtype=np.float32)
-MIN_LEN = 20
+from .hyperparameters import COLOR_WEIGHTS, MIN_LEN
 
 def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, image_hsv,
                   coverage_mask, stroke_sequence, stroke_generation_supervisor,
@@ -28,7 +25,7 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     # color error (per-channel weighted euclidean)
     error = np.sqrt(np.sum(COLOR_WEIGHTS * ((actual_colors - palette_color) ** 2), axis=1))
     mean_error = np.mean(error)
-    if not stroke_generation_supervisor.is_accepted(mean_error):
+    if not stroke_generation_supervisor.accept_error(mean_error):
         stroke_generation_supervisor.register_event(Events.too_much_color_error)
         coverage_mask[source_y_idx, start_x_idx] = True
         return False

@@ -2,14 +2,15 @@ from .supervisor import Events
 
 import numpy as np
 import math
-
-ATTRACTION_WEIGHT: float = 0.3
-ATTRACTION_RADIUS: int = 15
-STEP_SIZE = 1
-COLOR_WEIGHTS = np.array([0.30, 0.59, 0.11], dtype=np.float32)
-
-MIN_LEN = 20
-MAX_LEN = 20
+from .hyperparameters import (
+    ATTRACTION_WEIGHT,
+    ATTRACTION_RADIUS,
+    STEP_SIZE,
+    COLOR_WEIGHTS,
+    MIN_LEN,
+    MAX_LEN,
+    COLOR_DIFF_THRESHOLD,
+)
 
 def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor):
     path = [start_point]
@@ -86,7 +87,7 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
         
         # Perceptual color boundary rejection check
         color_diff = np.sqrt(np.sum(COLOR_WEIGHTS * ((image[next_y_idx, next_x_idx] - palette_color) ** 2)))
-        if color_diff > 75 and stroke_length_pixels >= MIN_LEN: 
+        if color_diff > COLOR_DIFF_THRESHOLD and stroke_length_pixels >= MIN_LEN:
             stroke_generation_supervisor.register_event(Events.stroke_too_short)
             break
 

@@ -48,7 +48,7 @@ class StrokeGenerationSupervisor:
                 self.events[event] = 0
             self.events[event] += 1
     
-    def is_accepted(self, stroke_color_error: float, update_kalman=True) -> bool:
+    def accept_error(self, stroke_color_error: float, update_kalman=True) -> bool:
         # Guard it so it doesn't exceed the absolute hard limit or drop below 0
         current_threshold = max(0.0, self.mu - self.Z_VALUE * self.sigma)
         accepted = stroke_color_error <= current_threshold

@@ -4,7 +4,8 @@ import cv2
 from datatypes import StrokePath
 from .supervisor import Events
 from .expand import expand_point
-from .acceptance import accept_stroke, MIN_LEN
+from .acceptance import accept_stroke
+from .hyperparameters import MIN_LEN, HSV_WEIGHTS
 
 with open("data/my_robot_calibration.json", "r") as f:
     # Helper to convert a single hex string (e.g., "#FF5733") to [R, G, B]
@@ -46,9 +47,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
     # PALETTE_ARR shape: (N, 3). We reshape to (1, N, 3) for OpenCV compatibility
     palette_hsv = cv2.cvtColor(PALETTE_ARR.astype(np.uint8).reshape(1, -1, 3), cv2.COLOR_RGB2HSV).reshape(-1, 3).astype(np.float32)
 
-    # Define HSV feature weights: Put massive emphasis on Hue (index 0) 
-    # so blue pixels are strictly forced to blue palette colors.
-    HSV_WEIGHTS = np.array([1.0, 0.1, 0], dtype=np.float32)
+    # HSV feature weights are defined in hyperparameters
 
     attempts = 0
     while attempts < stroke_generation_supervisor.max_attempts:
