@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm #  progress bar
 
-def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
+def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
     """Create a frame showing strokes up to a specified index with dimension annotations.
     
     Args:
@@ -17,6 +17,8 @@ def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
     Returns:
         A numpy array representing the frame with dimensions from image_size and annotations.
     """
+
+    opacity=0.7
     
     # Initialize the single-entry cache attribute if it doesn't exist
     if not hasattr(get_stroke_frame, "cache"):
@@ -76,11 +78,16 @@ def get_stroke_frame(stroke_sequence, stroke_index, opacity=0.5, label=""):
             # Perform alpha blending
             cv2.addWeighted(overlay, opacity, canvas, 1.0 - opacity, 0, canvas)
 
+
     # Update the single cache entry with the final state of this current run
     # (We save it before UI text/annotations are burned into it)
     get_stroke_frame.cache["index"] = stroke_index
     get_stroke_frame.cache["canvas"] = canvas.copy()
 
+
+    if not do_annotate:
+        return canvas
+    
     canvas = np.flip(canvas, axis=0) # vertical flip
 
     # Add padding and annotations
@@ -200,7 +207,7 @@ def calculate_stroke_duration(stroke_sequence, i, length_per_seconds:float):
     total_path_length = float(np.sum(segment_lengths))
     return total_path_length / length_per_seconds
 
-def animate_stroke_sequence(stroke_sequence, filename = "tmp", opacity=0.8):
+def animate_stroke_sequence(stroke_sequence, filename = "tmp"):
     """Animate a StrokeSequence data structure as a video with alpha transparency rendering."""
     canvas_width, canvas_height = stroke_sequence.image_size
     padding = 100
@@ -218,21 +225,21 @@ def animate_stroke_sequence(stroke_sequence, filename = "tmp", opacity=0.8):
     for i in tqdm(range(len(stroke_sequence.strokes))):
         # Pass the opacity down into the frame generator loop
         clock_time += calculate_stroke_duration(stroke_sequence, i, length_per_seconds=50) # mm/seconds
-        frame = get_stroke_frame(stroke_sequence, i, opacity=opacity, label=f"{clock_time//60} min.")
+        frame = get_stroke_frame(stroke_sequence, i, label=f"{clock_time//60} min.")
         video_writer.write(frame)
         clock_time += 5 # time to load brush etc.
     
     video_writer.release()
 
 
-def visualize_stroke_sequence(stroke_sequence, opacity=0.8, max_count=None):
+def visualize_stroke_sequence(stroke_sequence, max_count=None, do_annotate = True):
     """Visualize a StrokeSequence by returning the image of all strokes with alpha transparency rendering."""
     if len(stroke_sequence.strokes) == 0:
         raise ValueError("No strokes to visualize")
     
     if max_count is None:
         max_count = len(stroke_sequence.strokes) - 1
-    frame = get_stroke_frame(stroke_sequence, max_count, opacity=opacity)
+    frame = get_stroke_frame(stroke_sequence, max_count, do_annotate=do_annotate)
     
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     pil_image = Image.fromarray(frame_rgb)

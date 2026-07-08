@@ -32,7 +32,9 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
     Evaluates color errors optimistically based on multi-pass opacity projections.
     Uses Perceptual RGB distance metrics to fix unrealistic color assignments.
     """
-    image_hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV).astype(np.float32)
+    # Work on a local copy so we don't mutate the caller's source image
+    working_image = image.copy()
+    image_hsv = cv2.cvtColor(working_image, cv2.COLOR_RGB2HSV) # .astype(np.float32)
 
     H, W, _ = image.shape
     gy, gx = grad
@@ -91,7 +93,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
         palette_color = PALETTE_LIST[closest_idx]
 
         start_point = (start_x_idx, source_y_idx)
-        path, stroke_length_pixels = expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
+        path, stroke_length_pixels = expand_point(working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
         
         if stroke_length_pixels >= MIN_LEN:
             path_np = np.array(path, dtype=np.int32)
@@ -100,7 +102,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
                 path_np=path_np,
                 stroke_length_pixels=stroke_length_pixels,
                 palette_color=palette_color,
-                image=image,
+                image=working_image,
                 image_hsv=image_hsv,
                 coverage_mask=coverage_mask,
                 stroke_sequence=stroke_sequence,
