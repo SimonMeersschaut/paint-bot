@@ -20,6 +20,7 @@ theme:
 
 plugins:
   - search
+  - awesome-pages
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -49,6 +50,9 @@ nav:
     - Expanding: stroke_algorithm/stroke_expanding.md
     - Supervisor: stroke_algorithm/supervisor.md
     - Stroke Ordering: stroke_algorithm/stroke_ordering.md
+    - Experiments:
+      - Overview: stroke_algorithm/experiments/overview.md
+      - Experiment 1: stroke_algorithm/experiments/experiment1.md
   - Hardware:
     - Overview: hardware/overview.md
     - Raspberry Pi: hardware/raspberry_pi.md
