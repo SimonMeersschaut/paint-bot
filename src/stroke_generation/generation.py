@@ -1,11 +1,11 @@
 import json
 import numpy as np
 import cv2
-from datatypes import StrokePath
 from .supervisor import Events
 from .expand import expand_point
 from .acceptance import accept_stroke
-from .hyperparameters import MIN_LEN, HSV_WEIGHTS
+from .hyperparameters import Hyperparameters
+# from datatypes import StrokePath
 
 with open("data/my_robot_calibration.json", "r") as f:
     # Helper to convert a single hex string (e.g., "#FF5733") to [R, G, B]
@@ -85,9 +85,9 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
         val_diff = palette_hsv[:, 2] - pixel_hsv[2]
 
         # Combine using the HSV weights
-        dists = (HSV_WEIGHTS[0] * (hue_diff ** 2) + 
-                HSV_WEIGHTS[1] * (sat_diff ** 2) + 
-                HSV_WEIGHTS[2] * (val_diff ** 2))
+        dists = (Hyperparameters.HSV_WEIGHTS[0] * (hue_diff ** 2) + 
+                Hyperparameters.HSV_WEIGHTS[1] * (sat_diff ** 2) + 
+                Hyperparameters.HSV_WEIGHTS[2] * (val_diff ** 2))
 
         closest_idx = np.argmin(dists)
         palette_color = PALETTE_LIST[closest_idx]
@@ -95,7 +95,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
         start_point = (start_x_idx, source_y_idx)
         path, stroke_length_pixels = expand_point(working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
         
-        if stroke_length_pixels >= MIN_LEN:
+        if stroke_length_pixels >= Hyperparameters.MIN_LEN:
             path_np = np.array(path, dtype=np.int32)
             accepted = accept_stroke(
                 path=path,

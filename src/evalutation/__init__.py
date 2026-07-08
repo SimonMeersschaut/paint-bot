@@ -1,9 +1,10 @@
 # Evaluate a StrokeSequence by comparing rendered strokes against the target image.
 from visualisation import visualize_stroke_sequence
+from stroke_generation.hyperparameters import Hyperparameters
+from visualisation import show_np_image
+
 import numpy as np
 import cv2
-from stroke_generation.hyperparameters import HSV_WEIGHTS
-from visualisation import show_np_image
 from PIL import ImageFilter
 
 def _to_uint8_rgb(arr):
@@ -24,7 +25,7 @@ def _to_uint8_rgb(arr):
         raise TypeError("Expected numpy array for image")
 
 
-def evaluate(pil_resized_image, stroke_sequence, np_padded_mask_resized) -> float:
+def evaluate(pil_resized_image, stroke_sequence, np_padded_mask_resized, show_debug=False) -> float:
     """Compute a weighted mean squared error between target image and rendered strokes.
 
     - np_resized_image: numpy array (H, W, 3) in RGB (uint8 or float [0,1]).
@@ -39,7 +40,7 @@ def evaluate(pil_resized_image, stroke_sequence, np_padded_mask_resized) -> floa
     pil_render = visualize_stroke_sequence(stroke_sequence, do_annotate=False)
     render_np = np.array(pil_render)  # RGB uint8
 
-    pil_blurred_image = pil_resized_image.filter(ImageFilter.GaussianBlur(radius=5))
+    pil_blurred_image = pil_resized_image.filter(ImageFilter.GaussianBlur(radius=3))
     np_resized_blurred_image = np.array(pil_blurred_image)
 
     target = _to_uint8_rgb(np_resized_blurred_image)
@@ -59,10 +60,11 @@ def evaluate(pil_resized_image, stroke_sequence, np_padded_mask_resized) -> floa
     sat_diff = target_hsv[:, :, 1] - render_hsv[:, :, 1]
     val_diff = target_hsv[:, :, 2] - render_hsv[:, :, 2]
 
-    show_np_image(np.where(mask_bool, sat_diff, 0.0))
+    if show_debug:
+        show_np_image(np.where(mask_bool, sat_diff, 0.0))
 
     # Weighted per-pixel squared error
-    weights = np.asarray(HSV_WEIGHTS, dtype=np.float32)
+    weights = np.asarray(Hyperparameters.HSV_WEIGHTS, dtype=np.float32)
     per_pixel = (weights[0] * (hue_diff ** 2) +
                  weights[1] * (sat_diff ** 2) +
                  weights[2] * (val_diff ** 2))

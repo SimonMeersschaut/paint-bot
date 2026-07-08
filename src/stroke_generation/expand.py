@@ -2,15 +2,7 @@ from .supervisor import Events
 
 import numpy as np
 import math
-from .hyperparameters import (
-    ATTRACTION_WEIGHT,
-    ATTRACTION_RADIUS,
-    STEP_SIZE,
-    COLOR_WEIGHTS,
-    MIN_LEN,
-    MAX_LEN,
-    COLOR_DIFF_THRESHOLD,
-)
+from .hyperparameters import Hyperparameters
 
 def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor):
     path = [start_point]
@@ -18,7 +10,7 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
 
     curr_x, curr_y = float(start_x_idx), float(source_y_idx)
     last_dx, last_dy = 0.0, 0.0
-    for _ in range(MAX_LEN):
+    for _ in range(Hyperparameters.MAX_LEN):
         map_y, map_x = int(np.clip(curr_y, 0, H - 1)), int(np.clip(curr_x, 0, W - 1))
 
         gx_val = gx[map_y, map_x]
@@ -39,9 +31,9 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
         if len(path) > 1 and (dx * last_dx + dy * last_dy) < 0:
             dx, dy = -dx, -dy
 
-        if ATTRACTION_WEIGHT > 0:
-            y_min, y_max = max(0, map_y - ATTRACTION_RADIUS), min(H, map_y + ATTRACTION_RADIUS + 1)
-            x_min, x_max = max(0, map_x - ATTRACTION_RADIUS), min(W, map_x + ATTRACTION_RADIUS + 1)
+        if Hyperparameters.ATTRACTION_WEIGHT > 0:
+            y_min, y_max = max(0, map_y - Hyperparameters.ATTRACTION_RADIUS), min(H, map_y + Hyperparameters.ATTRACTION_RADIUS + 1)
+            x_min, x_max = max(0, map_x - Hyperparameters.ATTRACTION_RADIUS), min(W, map_x + Hyperparameters.ATTRACTION_RADIUS + 1)
 
             local_unpainted = (segment_mask[y_min:y_max, x_min:x_max] & ~coverage_mask[y_min:y_max, x_min:x_max])
             
@@ -59,15 +51,15 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
                 
                 pull_mag = np.sqrt(pull_x**2 + pull_y**2)
                 if pull_mag > 0:
-                    dx += ATTRACTION_WEIGHT * (pull_x / pull_mag)
-                    dy += ATTRACTION_WEIGHT * (pull_y / pull_mag)
+                    dx += Hyperparameters.ATTRACTION_WEIGHT * (pull_x / pull_mag)
+                    dy += Hyperparameters.ATTRACTION_WEIGHT * (pull_y / pull_mag)
                     
                     final_mag = np.sqrt(dx**2 + dy**2)
                     if final_mag > 0:
                         dx, dy = dx / final_mag, dy / final_mag
             
-        next_x = curr_x + dx * STEP_SIZE
-        next_y = curr_y + dy * STEP_SIZE
+        next_x = curr_x + dx * Hyperparameters.STEP_SIZE
+        next_y = curr_y + dy * Hyperparameters.STEP_SIZE
 
         next_x_idx = int(np.clip(next_x, 0, W - 1))
         next_y_idx = int(np.clip(next_y, 0, H - 1))
@@ -86,8 +78,8 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
                 break
         
         # Perceptual color boundary rejection check
-        color_diff = np.sqrt(np.sum(COLOR_WEIGHTS * ((image[next_y_idx, next_x_idx] - palette_color) ** 2)))
-        if color_diff > COLOR_DIFF_THRESHOLD and stroke_length_pixels >= MIN_LEN:
+        color_diff = np.sqrt(np.sum(Hyperparameters.COLOR_WEIGHTS * ((image[next_y_idx, next_x_idx] - palette_color) ** 2)))
+        if color_diff > Hyperparameters.COLOR_DIFF_THRESHOLD and stroke_length_pixels >= Hyperparameters.MIN_LEN:
             stroke_generation_supervisor.register_event(Events.stroke_too_short)
             break
 
