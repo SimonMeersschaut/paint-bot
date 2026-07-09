@@ -52,6 +52,7 @@ nav:
     - Experiments:
       - Overview: stroke_algorithm/experiments/overview.md
       - Experiment 1: stroke_algorithm/experiments/experiment1.md
+      - Experiment 2: stroke_algorithm/experiments/experiment2.md
   - Hardware:
     - Overview: hardware/overview.md
     - Raspberry Pi: hardware/raspberry_pi.md

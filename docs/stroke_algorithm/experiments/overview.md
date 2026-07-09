@@ -14,4 +14,5 @@ At last, the mean is taken over these weighted squares.
 
 | File | Description |
 | :--- | :--- |
-| [Experiment 1](experiment1.md) | ... |
+| [Experiment 1](experiment1.md) | Attraction weight |
+| [Experiment 2](experiment2.md) | Kalman filter z-value |

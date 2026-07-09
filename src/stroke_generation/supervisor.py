@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from enum import Enum
 import numpy as np
+from .hyperparameters import Hyperparameters
 
 
 class Events(Enum):
@@ -21,7 +22,7 @@ class StrokeGenerationSupervisor:
     def __init__(self):
         self.events = {}
 
-        self.Z_VALUE = -1 # sigma;  1.28sigma = 10%
+        # self.Z_VALUE = -1 # sigma;  1.28sigma = 10%
 
         # --- Kalman Filter Parameters ---
         self.mu = 50.0       # Initial estimated mean color error
@@ -49,8 +50,10 @@ class StrokeGenerationSupervisor:
             self.events[event] += 1
     
     def accept_error(self, stroke_color_error: float, update_kalman=True) -> bool:
+        z_value = Hyperparameters.KALMAN_Z_VALUE
+
         # Guard it so it doesn't exceed the absolute hard limit or drop below 0
-        current_threshold = max(0.0, self.mu - self.Z_VALUE * self.sigma)
+        current_threshold = max(0.0, self.mu - z_value * self.sigma)
         accepted = stroke_color_error <= current_threshold
 
         if update_kalman:
@@ -84,6 +87,7 @@ class StrokeGenerationSupervisor:
 
     def plot_color_error_history(self):
         """Plots the Kalman filter tracking parameters, threshold, and raw stroke errors."""
+        z_value = Hyperparameters.KALMAN_Z_VALUE
         if not self.history_errors:
             print("No history data to plot.")
             return
@@ -96,8 +100,7 @@ class StrokeGenerationSupervisor:
         mu_arr = np.array(self.history_mu)
         sigma_arr = np.array(self.history_sigma)
 
-        # Vectorized equivalent of: max(0.0, self.mu - self.Z_VALUE * self.sigma)
-        thresholds = np.maximum(0.0, mu_arr - self.Z_VALUE * sigma_arr)
+        thresholds = np.maximum(0.0, mu_arr - z_value * sigma_arr)
 
         plt.figure(figsize=(12, 6))
 
@@ -108,7 +111,7 @@ class StrokeGenerationSupervisor:
         # Line plots for Kalman parameters
         plt.plot(steps, self.history_mu, color='blue', linewidth=2, label='Estimated Mean ($\mu$)')
         
-        label_text = f'Acceptance Threshold ($\mu - {self.Z_VALUE}\sigma$)'
+        label_text = f'Acceptance Threshold ($\mu - {z_value}\sigma$)'
         plt.plot(steps, thresholds, color='black', linestyle='--', linewidth=2, label=label_text, zorder=4)
         
         # Shade the standard deviation band around the mean

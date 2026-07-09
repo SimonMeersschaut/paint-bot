@@ -31,33 +31,6 @@ def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, 
         if len(path) > 1 and (dx * last_dx + dy * last_dy) < 0:
             dx, dy = -dx, -dy
 
-        if Hyperparameters.ATTRACTION_WEIGHT > 0:
-            y_min, y_max = max(0, map_y - Hyperparameters.ATTRACTION_RADIUS), min(H, map_y + Hyperparameters.ATTRACTION_RADIUS + 1)
-            x_min, x_max = max(0, map_x - Hyperparameters.ATTRACTION_RADIUS), min(W, map_x + Hyperparameters.ATTRACTION_RADIUS + 1)
-
-            local_unpainted = (segment_mask[y_min:y_max, x_min:x_max] & ~coverage_mask[y_min:y_max, x_min:x_max])
-            
-            if np.any(local_unpainted):
-                local_indices = np.argwhere(local_unpainted)
-                rel_y = local_indices[:, 0] + y_min - map_y
-                rel_x = local_indices[:, 1] + x_min - map_x
-                
-                dist_sq = rel_x**2 + rel_y**2
-                dist_sq[dist_sq == 0] = 1.0  
-                weights = 1.0 / dist_sq
-                
-                pull_x = np.sum(rel_x * weights)
-                pull_y = np.sum(rel_y * weights)
-                
-                pull_mag = np.sqrt(pull_x**2 + pull_y**2)
-                if pull_mag > 0:
-                    dx += Hyperparameters.ATTRACTION_WEIGHT * (pull_x / pull_mag)
-                    dy += Hyperparameters.ATTRACTION_WEIGHT * (pull_y / pull_mag)
-                    
-                    final_mag = np.sqrt(dx**2 + dy**2)
-                    if final_mag > 0:
-                        dx, dy = dx / final_mag, dy / final_mag
-            
         next_x = curr_x + dx * Hyperparameters.STEP_SIZE
         next_y = curr_y + dy * Hyperparameters.STEP_SIZE
 

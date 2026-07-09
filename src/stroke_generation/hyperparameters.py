@@ -15,9 +15,7 @@ class Hyperparameters:
     # Expand/step behaviour
     STEP_SIZE = 1
 
-    # Attraction behaviour for expand algorithm
-    ATTRACTION_WEIGHT = 0.3
-    ATTRACTION_RADIUS = 15
+    KALMAN_Z_VALUE = -2.5
 
     # HSV feature weights used when matching palette colors (Hue, Saturation, Value)
     HSV_WEIGHTS = np.array([1.0, 0.1, 0], dtype=np.float32)

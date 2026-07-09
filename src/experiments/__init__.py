@@ -7,12 +7,9 @@ from visualisation import visualize_stroke_sequence, resize_image
 from stroke_generation import StrokeGenerationSupervisor, generate_strokes_for_layer
 
 import numpy as np
-import math
-
 from tqdm import tqdm # progress bar
 
 
-# import matplotlib.pyplot as plt
 import glob
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 from scipy.ndimage import gaussian_filter
