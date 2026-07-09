@@ -3,6 +3,19 @@
 Move tunable constants here so they can be adjusted in one place.
 """
 import numpy as np
+from abc import ABC
+from dataclasses import dataclass
+
+class ColorMethod(ABC):
+    ...
+
+class PaletteColorsOnly(ColorMethod):
+    ...
+
+@dataclass
+class KNearest():
+    k:int = 5
+
 
 class Hyperparameters:
     # Per-channel color weights for perceptual RGB distance (R, G, B)
@@ -22,3 +35,5 @@ class Hyperparameters:
 
     # Thresholds
     COLOR_DIFF_THRESHOLD = 75
+
+    COLOR_METHOD: object = PaletteColorsOnly()

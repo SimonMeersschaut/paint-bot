@@ -4,8 +4,9 @@ import cv2
 from .supervisor import Events
 from .expand import expand_point
 from .acceptance import accept_stroke
-from .hyperparameters import Hyperparameters
-# from datatypes import StrokePath
+from .k_nearest import k_nearest
+from datatypes import StrokePath
+from .hyperparameters import Hyperparameters, PaletteColorsOnly, KNearest
 
 with open("data/my_robot_calibration.json", "r") as f:
     # Helper to convert a single hex string (e.g., "#FF5733") to [R, G, B]
@@ -25,18 +26,23 @@ PALETTE_LIST = list(COLOR_PALETTE)
 
 # acceptance constants moved to acceptance.py
 
-def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, grad, coverage_mask, padding_mask,
+def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_image, grad, coverage_mask, padding_mask,
                                 stroke_generation_supervisor: object):
     """
-    Optimized stroke generation using minimized memory allocations and localized tracking.
-    Evaluates color errors optimistically based on multi-pass opacity projections.
-    Uses Perceptual RGB distance metrics to fix unrealistic color assignments.
+    TODO
     """
     # Work on a local copy so we don't mutate the caller's source image
-    working_image = image.copy()
-    image_hsv = cv2.cvtColor(working_image, cv2.COLOR_RGB2HSV) # .astype(np.float32)
+    np_working_image = np_image.copy()
 
-    H, W, _ = image.shape
+    if type(Hyperparameters.COLOR_METHOD) == KNearest:
+        np_working_image = k_nearest(
+            np_working_image,
+            k=Hyperparameters.COLOR_METHOD.k
+        )
+
+    image_hsv = cv2.cvtColor(np_working_image, cv2.COLOR_RGB2HSV) # .astype(np.float32)
+
+    H, W, _ = np_image.shape
     gy, gx = grad
     segment_mask = (resized_segments == label)
     total_sp_pixels = np.sum(segment_mask)
@@ -50,7 +56,6 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
     palette_hsv = cv2.cvtColor(PALETTE_ARR.astype(np.uint8).reshape(1, -1, 3), cv2.COLOR_RGB2HSV).reshape(-1, 3).astype(np.float32)
 
     # HSV feature weights are defined in hyperparameters
-
     attempts = 0
     while attempts < stroke_generation_supervisor.max_attempts:
         covered_sp_pixels = np.sum(segment_mask & coverage_mask)
@@ -93,16 +98,16 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
         palette_color = PALETTE_LIST[closest_idx]
 
         start_point = (start_x_idx, source_y_idx)
-        path, stroke_length_pixels = expand_point(working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
+        path, stroke_length_pixels = expand_point(np_working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
         
         if stroke_length_pixels >= Hyperparameters.MIN_LEN:
             path_np = np.array(path, dtype=np.int32)
-            accepted = accept_stroke(
+            accepted, pigment = accept_stroke(
                 path=path,
                 path_np=path_np,
                 stroke_length_pixels=stroke_length_pixels,
                 palette_color=palette_color,
-                image=working_image,
+                image=np_working_image,
                 image_hsv=image_hsv,
                 coverage_mask=coverage_mask,
                 stroke_sequence=stroke_sequence,
@@ -111,10 +116,21 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
                 start_x_idx=start_x_idx,
             )
 
-            # if not accepted:
-            #     attempts += 1
-            #     continue
+            if accepted:
+                stroke_sequence.strokes.append(
+                    StrokePath(
+                        color=tuple(int(c) for c in palette_color),
+                        pigment=pigment,
+                        path=path,
+                        brushWidth=stroke_generation_supervisor.brush_size,
+                        )
+                )
+
+                stroke_generation_supervisor.register_event(Events.stroke_accepted)
+            else:
+                pass
         attempts += 1
+        continue
             
     stroke_generation_supervisor.register_event(Events.max_attempts_reached)
     return

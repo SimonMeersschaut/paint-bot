@@ -16,7 +16,7 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     H, W = image.shape[:2]
 
     if stroke_length_pixels < Hyperparameters.MIN_LEN:
-        return False
+        return False, 0
 
     # extract coordinates and sampled colors
     path_x, path_y = path_np[:, 0], path_np[:, 1]
@@ -28,7 +28,7 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     if not stroke_generation_supervisor.accept_error(mean_error):
         stroke_generation_supervisor.register_event(Events.too_much_color_error)
         coverage_mask[source_y_idx, start_x_idx] = True
-        return False
+        return False, 0
 
     # compute ROI for localized updates
     x_start, y_start = np.min(path_np, axis=0)
@@ -62,12 +62,12 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     if total_painted_area == 0:
         coverage_mask[source_y_idx, start_x_idx] = True
         stroke_generation_supervisor.register_event(Events.no_painted_area)
-        return False
+        return False, 0
 
     if (newly_painted_area / total_painted_area) <= stroke_generation_supervisor.min_stroke_coverage_score:
         coverage_mask[source_y_idx, start_x_idx] = True
         stroke_generation_supervisor.register_event(Events.coverage_score_too_low)
-        return False
+        return False, 0
 
     # apply color to image ROI and update coverage
     image_roi = image[y_min_roi:y_max_roi, x_min_roi:x_max_roi]
@@ -81,14 +81,4 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     average_hsv = np.mean(image_hsv_roi[boolean_stroke_mask], axis=0)
     pigment = average_hsv[1] / 255 * .6 + average_hsv[1] / 255 * .4
 
-    stroke_sequence.strokes.append(
-        StrokePath(
-            color=tuple(int(c) for c in palette_color),
-            pigment=pigment,
-            path=path,
-            brushWidth=stroke_generation_supervisor.brush_size,
-        )
-    )
-
-    stroke_generation_supervisor.register_event(Events.stroke_accepted)
-    return True
+    return True, pigment

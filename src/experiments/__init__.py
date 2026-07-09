@@ -139,7 +139,7 @@ def conduct_experiment(**hyper_parameters):
                 stroke_sequence=stroke_sequence, 
                 resized_segments=resized_segments, 
                 label=label, 
-                image=np_resized_image,
+                np_image=np_resized_image,
                 coverage_mask=coverage_mask,
                 padding_mask=np_padded_mask_resized,
                 stroke_generation_supervisor=stroke_generation_supervisor,
