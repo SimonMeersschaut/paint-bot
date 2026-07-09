@@ -111,9 +111,10 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, image, 
                 start_x_idx=start_x_idx,
             )
 
-            if not accepted:
-                attempts += 1
-                continue
+            # if not accepted:
+            #     attempts += 1
+            #     continue
+        attempts += 1
             
     stroke_generation_supervisor.register_event(Events.max_attempts_reached)
     return
