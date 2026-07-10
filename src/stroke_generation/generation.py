@@ -4,7 +4,6 @@ import cv2
 from .supervisor import Events
 from .expand import expand_point
 from .acceptance import accept_stroke
-from .k_nearest import k_nearest
 from datatypes import StrokePath
 from .hyperparameters import Hyperparameters, PaletteColorsOnly, KNearest
 
@@ -27,18 +26,12 @@ PALETTE_LIST = list(COLOR_PALETTE)
 # acceptance constants moved to acceptance.py
 
 def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_image, grad, coverage_mask, padding_mask,
-                                stroke_generation_supervisor: object):
+                                stroke_generation_supervisor: object, np_k_nearest):
     """
     TODO
     """
     # Work on a local copy so we don't mutate the caller's source image
     np_working_image = np_image.copy()
-
-    if type(Hyperparameters.COLOR_METHOD) == KNearest:
-        np_working_image = k_nearest(
-            np_working_image,
-            k=Hyperparameters.COLOR_METHOD.k
-        )
 
     image_hsv = cv2.cvtColor(np_working_image, cv2.COLOR_RGB2HSV) # .astype(np.float32)
 
@@ -79,23 +72,29 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_imag
         start_x_idx = int(np.clip(cx, 0, W - 1))
         source_y_idx = int(np.clip(cy, 0, H - 1))
         
-        pixel_hsv = image_hsv[source_y_idx, start_x_idx].astype(np.uint8)
 
-        # Calculate cyclic hue difference (Hue loops at 180 in OpenCV)
-        hue_diff = np.abs(palette_hsv[:, 0] - pixel_hsv[0])
-        hue_diff = np.minimum(hue_diff, 180 - hue_diff)
+        if type(Hyperparameters.COLOR_METHOD) == PaletteColorsOnly:
+            pixel_hsv = image_hsv[source_y_idx, start_x_idx].astype(np.uint8)
+            # Calculate cyclic hue difference (Hue loops at 180 in OpenCV)
+            hue_diff = np.abs(palette_hsv[:, 0] - pixel_hsv[0])
+            hue_diff = np.minimum(hue_diff, 180 - hue_diff)
 
-        # Calculate standard differences for Saturation and Value
-        sat_diff = palette_hsv[:, 1] - pixel_hsv[1]
-        val_diff = palette_hsv[:, 2] - pixel_hsv[2]
+            # Calculate standard differences for Saturation and Value
+            sat_diff = palette_hsv[:, 1] - pixel_hsv[1]
+            val_diff = palette_hsv[:, 2] - pixel_hsv[2]
 
-        # Combine using the HSV weights
-        dists = (Hyperparameters.HSV_WEIGHTS[0] * (hue_diff ** 2) + 
-                Hyperparameters.HSV_WEIGHTS[1] * (sat_diff ** 2) + 
-                Hyperparameters.HSV_WEIGHTS[2] * (val_diff ** 2))
+            # Combine using the HSV weights
+            dists = (Hyperparameters.HSV_WEIGHTS[0] * (hue_diff ** 2) + 
+                    Hyperparameters.HSV_WEIGHTS[1] * (sat_diff ** 2) + 
+                    Hyperparameters.HSV_WEIGHTS[2] * (val_diff ** 2))
 
-        closest_idx = np.argmin(dists)
-        palette_color = PALETTE_LIST[closest_idx]
+            closest_idx = np.argmin(dists)
+            palette_color = PALETTE_LIST[closest_idx]
+        
+        elif type(Hyperparameters.COLOR_METHOD) == KNearest:
+            palette_color = np_k_nearest[source_y_idx, start_x_idx].astype(np.uint8)
+        else:
+            raise ValueError("Color method not recognized.")
 
         start_point = (start_x_idx, source_y_idx)
         path, stroke_length_pixels = expand_point(np_working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)

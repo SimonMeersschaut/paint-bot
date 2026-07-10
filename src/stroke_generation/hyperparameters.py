@@ -18,8 +18,8 @@ class KNearest():
 
 
 class Hyperparameters:
-    # Per-channel color weights for perceptual RGB distance (R, G, B)
-    COLOR_WEIGHTS = np.array([0.30, 0.59, 0.11], dtype=np.float32)
+    # Per-channel color weights for perceptual HSV distance (H, S, V)
+    COLOR_WEIGHTS = np.array([0.5, 0.59, 0.11], dtype=np.float32)
 
     # Stroke length limits (in pixels or steps depending on context)
     MIN_LEN = 20

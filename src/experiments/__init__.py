@@ -5,6 +5,8 @@ from datatypes import StrokeSequence
 from stroke_generation.hyperparameters import Hyperparameters
 from visualisation import visualize_stroke_sequence, resize_image
 from stroke_generation import StrokeGenerationSupervisor, generate_strokes_for_layer
+from stroke_generation import Hyperparameters, KNearest
+from stroke_generation import k_nearest
 
 import numpy as np
 from tqdm import tqdm # progress bar
@@ -18,14 +20,18 @@ from scipy.ndimage import center_of_mass
 from skimage.segmentation import slic
 
 
-def conduct_experiment(**hyper_parameters):
+def conduct_experiment(lite:bool, **hyper_parameters):
     # set hyper parameters
     for key, value in hyper_parameters.items():
         setattr(Hyperparameters, key, value)
 
     evaluations = []
 
-    for filename in glob.glob("../images/*.*"):
+    filenames = glob.glob("../images/*.*")
+    if lite:
+        filenames = [ filenames[5] ]
+
+    for filename in filenames:
         # ## Image Pre-loading
 
         # 1. Load your PIL image
@@ -60,7 +66,7 @@ def conduct_experiment(**hyper_parameters):
 
         # 5. Convert mask to a 1 and 0 NumPy array
         # Wherever the padded_mask is 255 (white), it's a real pixel (1). Otherwise, it's 0.
-        padding_mask = (np.array(padded_mask_resized) == 0).astype(np.uint8)
+        # padding_mask = (np.array(padded_mask_resized) == 0).astype(np.uint8)
 
         # ## Segmentation
 
@@ -119,6 +125,16 @@ def conduct_experiment(**hyper_parameters):
 
         labels = np.unique(segments)
 
+        if type(Hyperparameters.COLOR_METHOD) == KNearest:
+            np_k_nearest = k_nearest(
+                np_resized_image,
+                k=Hyperparameters.COLOR_METHOD.k
+            )
+
+            # show_np_image(np_k_nearest)
+        else:
+            np_k_nearest = None
+
         # Loop through the targeted depth layer bins (Back-to-Front ordering)
         for label in tqdm(labels):
             ## Choose brush-size
@@ -143,6 +159,7 @@ def conduct_experiment(**hyper_parameters):
                 coverage_mask=coverage_mask,
                 padding_mask=np_padded_mask_resized,
                 stroke_generation_supervisor=stroke_generation_supervisor,
+                np_k_nearest=np_k_nearest,
             )
 
         pil_result = visualize_stroke_sequence(stroke_sequence, do_annotate=False)
