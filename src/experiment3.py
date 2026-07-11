@@ -1,12 +1,7 @@
-import time
-# from pathlib import Path
-
 import matplotlib.pyplot as plt
-import numpy as np
 
 from experiments import conduct_experiment
-# from stroke_generation import Hyperparameters
-from stroke_generation import ColorMethod, PaletteColorsOnly, KNearest
+from stroke_generation import PaletteColorsOnly, KNearest
 
 
 LITE = True

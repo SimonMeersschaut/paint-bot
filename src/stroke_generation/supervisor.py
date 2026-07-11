@@ -111,7 +111,10 @@ class StrokeGenerationSupervisor:
         # Line plots for Kalman parameters
         plt.plot(steps, self.history_mu, color='blue', linewidth=2, label='Estimated Mean ($\mu$)')
         
-        label_text = f'Acceptance Threshold ($\mu - {z_value}\sigma$)'
+        if z_value >= 0:
+            label_text = f'Acceptance Threshold ($\mu - {z_value}\sigma$)'
+        else:
+            label_text = f'Acceptance Threshold ($\mu + {abs(z_value)}\sigma$)'
         plt.plot(steps, thresholds, color='black', linestyle='--', linewidth=2, label=label_text, zorder=4)
         
         # Shade the standard deviation band around the mean

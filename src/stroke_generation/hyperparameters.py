@@ -13,13 +13,13 @@ class PaletteColorsOnly(ColorMethod):
     ...
 
 @dataclass
-class KNearest():
+class KNearest(ColorMethod):
     k:int = 5
 
 
 class Hyperparameters:
     # Per-channel color weights for perceptual HSV distance (H, S, V)
-    COLOR_WEIGHTS = np.array([0.5, 0.59, 0.11], dtype=np.float32)
+    COLOR_WEIGHTS = np.array([1.0, 0.59, 0.11], dtype=np.float32)
 
     # Stroke length limits (in pixels or steps depending on context)
     MIN_LEN = 20

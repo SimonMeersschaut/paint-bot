@@ -1,5 +1,4 @@
 import numpy as np
-# import matplotlib.pyplot as plt
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from scipy.cluster.vq import kmeans2
 from .hyperparameters import Hyperparameters
@@ -24,7 +23,8 @@ def k_nearest(np_image, k: int = 5, m_buckets: int = 32, boldness_boost: float =
     hsv_pixels = rgb_to_hsv(rgb_normalized.reshape(-1, 3))
     
     # Per-channel color weights (H, S, V)
-    COLOR_WEIGHTS = Hyperparameters.COLOR_WEIGHTS
+    COLOR_WEIGHTS = np.array([0.2, 0.59, 0.11], dtype=np.float32)
+
     
     # 2. Cluster in HSV space using K-Means
     centroids_hsv, pixel_labels = kmeans2(hsv_pixels, m_buckets, minit='points', missing='warn')
@@ -52,14 +52,14 @@ def k_nearest(np_image, k: int = 5, m_buckets: int = 32, boldness_boost: float =
     
     # Sort buckets by their boosted scores instead of raw population
     sorted_indices = np.argsort(boosted_scores)[::-1]
-    sorted_counts = full_counts[sorted_indices]
+    # sorted_counts = full_counts[sorted_indices]
     sorted_centroids_hsv = centroids_hsv[sorted_indices]
     # ----------------------------
     
     # --- PLOTTING BLOCK ---
     # Convert HSV centroids back to RGB for the bar colors
-    sorted_centroids_rgb = hsv_to_rgb(sorted_centroids_hsv)
-    bar_colors = np.clip(sorted_centroids_rgb, 0, 1)
+    # sorted_centroids_rgb = hsv_to_rgb(sorted_centroids_hsv)
+    # bar_colors = np.clip(sorted_centroids_rgb, 0, 1)
 
     # plt.clf()
     # plt.bar(range(m_buckets), sorted_counts, color=bar_colors, edgecolor='black', linewidth=0.5)
