@@ -61,11 +61,9 @@ class SerialPrinter(Printer):
                         return
                 except serial.SerialException as e:
                     self.connection = None
-                    print("Not connected!")
                     print(e)
-                    raise RuntimeError()
-        print("No connection found!")
-        raise RuntimeError()
+                    raise RuntimeError("Not connected!")
+        raise RuntimeError("No connection found!")
 
     def send_command(self, command: str) -> str:
         """
