@@ -3,6 +3,7 @@ import re
 import serial
 import serial.tools.list_ports
 import time
+import os
 
 # Defining the abstract base class based on your snippet
 class Printer(ABC):
@@ -40,8 +41,9 @@ class SerialPrinter(Printer):
 
     def connect(self):
         """Establishes connection to the GRBL controller and wakes it up."""
+        operating_system = os.getenv("os")
         for port in serial.tools.list_ports.comports():
-            if port.manufacturer == "Arduino (www.arduino.cc)": # make sure we are opening the correct port
+            if port.manufacturer == "Arduino (www.arduino.cc)" or operating_system=="windows": # make sure we are opening the correct port
                 try:
                     print(f"Connecting to GRBL on {port.device}...")
                     self.connection = serial.Serial(port.device, self.baudrate, timeout=1.0) # Increased timeout slightly for initial shake
@@ -61,9 +63,9 @@ class SerialPrinter(Printer):
                     self.connection = None
                     print("Not connected!")
                     print(e)
-                    exit()
+                    raise RuntimeError()
         print("No connection found!")
-        exit()
+        raise RuntimeError()
 
     def send_command(self, command: str) -> str:
         """

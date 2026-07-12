@@ -29,7 +29,7 @@ class RobotCalibrator:
                    ((x, y, z), None) if color=False
                    (where z is None if ask_z=False)
         """
-        X_MAX, Y_MAX, Z_MAX = 300, 300, 40
+        X_MAX, Y_MAX, Z_MAX = 220, 220, 40
         FEED_RATE = 2000
 
         target_pos = self.current_position.copy()
