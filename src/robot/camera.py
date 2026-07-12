@@ -15,74 +15,78 @@ except ModuleNotFoundError:
     cam = False
 
 
-def start():
-    global cam
+class Camera:
+    @classmethod
+    def start(cls):
+        global cam
 
-    if cam == False:
-        return
-    cam = Picamera2()
-    config = cam.create_still_configuration()
-    cam.configure(config)
-    cam.start()
+        if cam == False:
+            return
+        cam = Picamera2()
+        config = cam.create_still_configuration()
+        cam.configure(config)
+        cam.start()
 
-def take_picture():
-    if cam == False:
-        return
-    
-    if cam is None:
-        raise RuntimeError("Camera has not been started.")
+    @classmethod
+    def take_picture(cls, filename=None):
+        if cam == False:
+            return
+        
+        if cam is None:
+            raise RuntimeError("Camera has not been started.")
 
-    # Output file
-    # OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    filename = OUTPUT_DIR / f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-    cam.capture_file(str(filename))
-    print(f"Saved: {filename}")
+        if filename is None:
+            filename = OUTPUT_DIR / f"photo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        cam.capture_file(str(filename))
+        print(f"Saved: {filename}")
 
-def close():
-    global cam
+    @classmethod
+    def close(cls):
+        global cam
 
-    if cam == False:
-        return
+        if cam == False:
+            return
 
-    if cam is not None:
-        cam.close()
-        cam = None
+        if cam is not None:
+            cam.close()
+            cam = None
 
-def create_timelapse(fps: int = 30):
-    if cam == False:
-        return
-    
-    image_paths = sorted(OUTPUT_DIR.glob("photo_*.jpg"))
+    @classmethod
+    def create_timelapse(cls, fps: int = 30):
+        if cam == False:
+            return
+        
+        image_paths = sorted(OUTPUT_DIR.glob("photo_*.jpg"))
 
-    if not image_paths:
-        raise FileNotFoundError(f"No images found in {OUTPUT_DIR}")
+        if not image_paths:
+            raise FileNotFoundError(f"No images found in {OUTPUT_DIR}")
 
-    output_file = OUTPUT_DIR / f"timelapse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+        output_file = OUTPUT_DIR / f"timelapse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
 
-    ffmpeg = shutil.which("ffmpeg")
-    if ffmpeg is None:
-        raise RuntimeError("ffmpeg is required to create a timelapse video")
+        ffmpeg = shutil.which("ffmpeg")
+        if ffmpeg is None:
+            raise RuntimeError("ffmpeg is required to create a timelapse video")
 
-    command = [
-        ffmpeg,
-        "-y",
-        "-framerate",
-        str(fps),
-        "-pattern_type",
-        "glob",
-        "-i",
-        str(output_dir / "photo_*.jpg"),
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        str(output_file),
-    ]
+        command = [
+            ffmpeg,
+            "-y",
+            "-framerate",
+            str(fps),
+            "-pattern_type",
+            "glob",
+            "-i",
+            str(output_dir / "photo_*.jpg"),
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(output_file),
+        ]
 
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"ffmpeg failed to create timelapse:\n{result.stderr.strip()}"
-        )
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"ffmpeg failed to create timelapse:\n{result.stderr.strip()}"
+            )
 
-    print(f"Saved timelapse: {output_file} ({len(image_paths)} frames)")
+        print(f"Saved timelapse: {output_file} ({len(image_paths)} frames)")

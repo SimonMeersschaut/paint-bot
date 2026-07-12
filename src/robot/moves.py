@@ -102,7 +102,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
     down_height = robot_calibration.bottom_left[2]
     
     # Configurable extension distance for the fluid motion (in mm)
-    LEAD_DISTANCE = 5.0 
+    LEAD_DISTANCE = 10.0 
     
     # 1. Bounds check to ensure the index exists
     if index < 0 or index >= len(stroke_sequence.strokes):
@@ -164,6 +164,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
 
     # Step B: Travel to the extended airborne start point (Lead-in position)
     printer.move_to(x=leadin_x, y=leadin_y, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(x=leadin_x, y=leadin_y, z=down_height+5, feed_rate=FEED_RATE_TRAVEL)
 
     # Step C: Swoop down! Move to the true start point and down_height simultaneously
     printer.move_to(x=start_x, y=start_y, z=down_height, feed_rate=FEED_RATE_PAINT)
@@ -173,6 +174,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
         printer.move_to(x=next_x, y=next_y, feed_rate=FEED_RATE_PAINT)
 
     # Step E: Swoop up! Fluidly exit the canvas by moving to leadout and up_height simultaneously
-    printer.move_to(x=leadout_x, y=leadout_y, z=up_height, feed_rate=FEED_RATE_PAINT)
+    printer.move_to(x=leadout_x, y=leadout_y, z=down_height+5, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(z=up_height, feed_rate=FEED_RATE_PAINT)
 
     print(f"--- Stroke {index} execution complete ---")

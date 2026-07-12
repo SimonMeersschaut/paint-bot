@@ -98,34 +98,38 @@ class SerialPrinter(Printer):
         poll_interval_seconds = 0.2
         tolerance = 0.05
 
+
         deadline = time.monotonic() + timeout_seconds
         self.move_to(x, y, z)
-        while True:
-            current_x, current_y, current_z = self.get_position()
-            print(current_x, current_y, current_z)
 
-            arrived = True
-            if target_x is not None and abs(current_x - target_x) > tolerance:
-                arrived = False
-            if target_y is not None and abs(current_y - target_y) > tolerance:
-                arrived = False
-            if target_z is not None and abs(current_z - target_z) > tolerance:
-                arrived = False
+        self.send_command("M400") # wait untill completion
 
-            if arrived:
-                return current_x, current_y, current_z
+        # while True:
+        #     current_x, current_y, current_z = self.get_position()
+        #     print(current_x, current_y, current_z)
 
-            if time.monotonic() >= deadline:
-                raise TimeoutError(
-                    f"Printer did not reach target position ({target_x}, {target_y}, {target_z})"
-                )
+        #     arrived = True
+        #     if target_x is not None and abs(current_x - target_x) > tolerance:
+        #         arrived = False
+        #     if target_y is not None and abs(current_y - target_y) > tolerance:
+        #         arrived = False
+        #     if target_z is not None and abs(current_z - target_z) > tolerance:
+        #         arrived = False
 
-            time.sleep(poll_interval_seconds)
+        #     if arrived:
+        #         return current_x, current_y, current_z
+
+        #     if time.monotonic() >= deadline:
+        #         raise TimeoutError(
+        #             f"Printer did not reach target position ({target_x}, {target_y}, {target_z})"
+        #         )
+
+        #     time.sleep(poll_interval_seconds)
 
     def get_position(self):
         """Query the current printer position using a M114."""
         
-        response = self.send_command("M114")
+        response = self.send_command("M114 R")
 
         match = re.search(
             r"X:([+-]?\d+(?:\.\d+)?)\s+Y:([+-]?\d+(?:\.\d+)?)\s+Z:([+-]?\d+(?:\.\d+)?)",
