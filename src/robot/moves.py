@@ -98,11 +98,12 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
     :param stroke_sequence: The StrokeSequence object containing the stroke list
     :param index: Index of the stroke to execute
     """
-    up_height = robot_calibration.safe_height
+    canvas_up_height = robot_calibration.canvas_up_height
     down_height = robot_calibration.bottom_left[2]
     
     # Configurable extension distance for the fluid motion (in mm)
-    LEAD_DISTANCE = 10.0 
+    LEAD_IN_DISTANCE = 5.0 
+    LEAD_OUT_DISTANCE = 2.0
     
     # 1. Bounds check to ensure the index exists
     if index < 0 or index >= len(stroke_sequence.strokes):
@@ -138,8 +139,8 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
         ux_start = dx_start / dist_start
         uy_start = dy_start / dist_start
         # Back up away from the direction of the stroke
-        leadin_x = start_x - (ux_start * LEAD_DISTANCE)
-        leadin_y = start_y - (uy_start * LEAD_DISTANCE)
+        leadin_x = start_x - (ux_start * LEAD_IN_DISTANCE)
+        leadin_y = start_y - (uy_start * LEAD_IN_DISTANCE)
     else:
         leadin_x, leadin_y = start_x, start_y
 
@@ -152,19 +153,19 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
         ux_end = dx_end / dist_end
         uy_end = dy_end / dist_end
         # Follow through past the final stroke coordinate
-        leadout_x = end_x + (ux_end * LEAD_DISTANCE)
-        leadout_y = end_y + (uy_end * LEAD_DISTANCE)
+        leadout_x = end_x + (ux_end * LEAD_IN_DISTANCE)
+        leadout_y = end_y + (uy_end * LEAD_OUT_DISTANCE)
     else:
         leadout_x, leadout_y = end_x, end_y
 
     # ================= ACTION SEQUENCE =================
 
     # Step A: Ensure brush is safely raised up before traveling
-    printer.move_to(z=up_height, feed_rate=FEED_RATE_TRAVEL)
 
     # Step B: Travel to the extended airborne start point (Lead-in position)
     printer.move_to(x=leadin_x, y=leadin_y, feed_rate=FEED_RATE_TRAVEL)
-    printer.move_to(x=leadin_x, y=leadin_y, z=down_height+5, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(z=canvas_up_height, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(z=(down_height+canvas_up_height)/2, feed_rate=FEED_RATE_TRAVEL)
 
     # Step C: Swoop down! Move to the true start point and down_height simultaneously
     printer.move_to(x=start_x, y=start_y, z=down_height, feed_rate=FEED_RATE_PAINT)
@@ -174,7 +175,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
         printer.move_to(x=next_x, y=next_y, feed_rate=FEED_RATE_PAINT)
 
     # Step E: Swoop up! Fluidly exit the canvas by moving to leadout and up_height simultaneously
-    printer.move_to(x=leadout_x, y=leadout_y, z=down_height+5, feed_rate=FEED_RATE_TRAVEL)
-    printer.move_to(z=up_height, feed_rate=FEED_RATE_PAINT)
+    printer.move_to(x=leadout_x, y=leadout_y, z=canvas_up_height, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(z=canvas_up_height, feed_rate=FEED_RATE_PAINT)
 
     print(f"--- Stroke {index} execution complete ---")

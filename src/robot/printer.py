@@ -48,7 +48,7 @@ class SerialPrinter(Printer):
                     print(f"Connecting to GRBL on {port.device}...")
                     self.connection = serial.Serial(port.device, self.baudrate, timeout=1.0) # Increased timeout slightly for initial shake
                     
-                    time.sleep(2)
+                    time.sleep(3)
                     self.connection.reset_input_buffer()
 
                     print("Connected successfully.")
