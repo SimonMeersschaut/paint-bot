@@ -26,6 +26,7 @@ sudo apt install -y python3-serial
 sudo apt install -y python3-torch
 sudo apt install -y python3-skimage
 sudo apt install -y python3-opencv
+sudo apt install -y python3-ipykernel
 
 # SSH
 ssh-keygen -t ed25519 -C "simon.meersschaut@gmail.com"
@@ -36,9 +37,6 @@ git config --global user.email "simon.meersschaut@gmail.com"
 Now you need to put the public key in github.
 
 ```
-# Code
-sudo apt install -y python3-ipykernel
-
 git clone "https://github.com/SimonMeersschaut/paint-bot.git"
 
 # open project
