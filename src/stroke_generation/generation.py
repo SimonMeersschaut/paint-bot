@@ -16,7 +16,7 @@ with open("data/my_robot_calibration.json", "r") as f:
     # Extract and convert the entire palette
     COLOR_PALETTE = [
         hex_to_rgb(entry["color"]) for entry in json.load(f)["color_palette"]
-        if not all(c == 255 for c in entry["color"]) # exclude white!
+        if entry.get("disabled", False) != True
     ]
 
 

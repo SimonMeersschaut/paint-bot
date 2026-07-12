@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 import numpy as np
 
-CANVAS_SIZE = (150, 95) # mm  # TODO centralize
-
 def show_np_image(np_image, *args, **kwargs):
     """Put the origin in the bottom left corner."""
 
@@ -19,7 +17,7 @@ def show_pil_image(pil):
     # slower than `show_np_image`
     show_np_image(np.array(pil))
 
-def resize_image(img: object):
+def resize_image(img: object, CANVAS_SIZE):
     """
     Unified entry point that pads and resizes either a PIL Image 
     or a NumPy ndarray to CANVAS_SIZE while preserving aspect ratio.
