@@ -84,17 +84,25 @@ def load_brush(printer, my_robot_calibration, color_index):
     
     print("--- Brush prep complete and ready to paint! ---")
 
-def execute_stroke(printer: Printer, robot_calibration:RobotCalibration, stroke_sequence: StrokeSequence, index: int) -> None:
+
+import math
+
+def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke_sequence: StrokeSequence, index: int) -> None:
     """
     Fetches a specific stroke path by index from a StrokeSequence, lifts the brush,
-    travels to the starting position, drops down, and traces the coordinates.
+    travels to a calculated lead-in position, smoothly swoops down into the stroke,
+    paints, and gracefully swoops up and away to prevent robotic artifacts.
     
     :param printer: The connected Printer instance (e.g., SerialPrinter)
+    :param robot_calibration: Calibration data for coordinate offsets and heights
     :param stroke_sequence: The StrokeSequence object containing the stroke list
     :param index: Index of the stroke to execute
     """
-    up_heigth = robot_calibration.safe_height
+    up_height = robot_calibration.safe_height
     down_height = robot_calibration.bottom_left[2]
+    
+    # Configurable extension distance for the fluid motion (in mm)
+    LEAD_DISTANCE = 5.0 
     
     # 1. Bounds check to ensure the index exists
     if index < 0 or index >= len(stroke_sequence.strokes):
@@ -105,36 +113,66 @@ def execute_stroke(printer: Printer, robot_calibration:RobotCalibration, stroke_
     stroke: StrokePath = stroke_sequence.strokes[index]
     
     # Safety check: ensure the stroke path actually has points
-    if not stroke.path:
-        print(f"Stroke at index {index} has an empty path. Skipping.")
+    if not stroke.path or len(stroke.path) < 2:
+        print(f"Stroke at index {index} requires at least 2 points for natural planning. Skipping.")
         return
 
-    print(f"--- Executing Stroke {index} | Color: {stroke.color} | Width: {stroke.brushWidth} ---")
-    print(f"Path {stroke.path}")
+    print(f"--- Executing Natural Stroke {index} | Color: {stroke.color} | Width: {stroke.brushWidth} ---")
     
-    # 3. Pull the starting coordinate
-    start_x, start_y = stroke.path[0]
-    start_x += robot_calibration.bottom_left[0]
-    start_y += robot_calibration.bottom_left[1]
+    # 3. Convert all path points to absolute world coordinates first
+    abs_path = []
+    for pt in stroke.path:
+        abs_x = pt[0] + robot_calibration.bottom_left[0]
+        abs_y = pt[1] + robot_calibration.bottom_left[1]
+        abs_path.append((abs_x, abs_y))
+        
+    start_x, start_y = abs_path[0]
+    end_x, end_y = abs_path[-1]
 
-    # 4. Lift up to travel height first (prevent dragging across previous paint)
-    printer.move_to(z=up_heigth, feed_rate=FEED_RATE_TRAVEL)
+    # 4. Calculate beginning direction vector for the lead-in
+    dx_start = abs_path[1][0] - start_x
+    dy_start = abs_path[1][1] - start_y
+    dist_start = math.sqrt(dx_start**2 + dy_start**2)
+    
+    if dist_start > 0:
+        ux_start = dx_start / dist_start
+        uy_start = dy_start / dist_start
+        # Back up away from the direction of the stroke
+        leadin_x = start_x - (ux_start * LEAD_DISTANCE)
+        leadin_y = start_y - (uy_start * LEAD_DISTANCE)
+    else:
+        leadin_x, leadin_y = start_x, start_y
 
-    # 5. Travel horizontally to the start position of the stroke
-    printer.move_to(x=start_x, y=start_y, feed_rate=FEED_RATE_TRAVEL)
+    # 5. Calculate ending direction vector for the lead-out
+    dx_end = end_x - abs_path[-2][0]
+    dy_end = end_y - abs_path[-2][1]
+    dist_end = math.sqrt(dx_end**2 + dy_end**2)
+    
+    if dist_end > 0:
+        ux_end = dx_end / dist_end
+        uy_end = dy_end / dist_end
+        # Follow through past the final stroke coordinate
+        leadout_x = end_x + (ux_end * LEAD_DISTANCE)
+        leadout_y = end_y + (uy_end * LEAD_DISTANCE)
+    else:
+        leadout_x, leadout_y = end_x, end_y
 
-    # 6. Lower the brush onto the canvas
-    printer.move_to(z=down_height, feed_rate=FEED_RATE_TRAVEL)
+    # ================= ACTION SEQUENCE =================
 
-    # 7. Trace out the rest of the points on the canvas at painting speed
-    # (Starting from index 1 because we are already at point 0)
-    for next_point in stroke.path[1:]:
-        next_x, next_y = next_point
-        next_x += robot_calibration.bottom_left[0]
-        next_y += robot_calibration.bottom_left[1] 
+    # Step A: Ensure brush is safely raised up before traveling
+    printer.move_to(z=up_height, feed_rate=FEED_RATE_TRAVEL)
+
+    # Step B: Travel to the extended airborne start point (Lead-in position)
+    printer.move_to(x=leadin_x, y=leadin_y, feed_rate=FEED_RATE_TRAVEL)
+
+    # Step C: Swoop down! Move to the true start point and down_height simultaneously
+    printer.move_to(x=start_x, y=start_y, z=down_height, feed_rate=FEED_RATE_PAINT)
+
+    # Step D: Trace out the core points on the canvas at painting speed
+    for next_x, next_y in abs_path[1:]:
         printer.move_to(x=next_x, y=next_y, feed_rate=FEED_RATE_PAINT)
 
-    # 8. Lift the brush up immediately when the stroke is finished to prevent a paint blob
-    printer.move_to(z=up_heigth, feed_rate=FEED_RATE_TRAVEL)
+    # Step E: Swoop up! Fluidly exit the canvas by moving to leadout and up_height simultaneously
+    printer.move_to(x=leadout_x, y=leadout_y, z=up_height, feed_rate=FEED_RATE_PAINT)
 
     print(f"--- Stroke {index} execution complete ---")
