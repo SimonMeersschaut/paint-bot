@@ -1,40 +1,63 @@
 from datatypes import RobotCalibration, StrokeSequence, StrokePath
 from robot import SerialPrinter, Printer
 import math
+import random
 
 FEED_RATE_TRAVEL = 3000
 FEED_RATE_WET = 1500
 FEED_RATE_LOAD = 700
 FEED_RATE_PAINT = 1200
 
-def scrub(printer, center_x, center_y, z_top, z_down, radius=10, cycles=2, steps_per_cycle=32):
-    """
-    Moves back and forth in the X direction while dipping down.
+import math
+
+
+def scrub(
+    printer,
+    center_x,
+    center_y,
+    z_top,
+    z_down,
+    radius=10,
+    cycles=2,
+    steps_per_cycle=32,
+    direction: float = 0,
+):
+    """Moves back and forth along a specified angular direction while dipping down.
+
     The lowest point (z_down) occurs exactly in the center of the palette.
     """
     # Total steps across all back-and-forth strokes
     total_steps = cycles * steps_per_cycle
-    
+
     for i in range(total_steps + 1):
         # Normalize the progress through the entire movement (0.0 to 1.0)
         progress = i / total_steps
-        
-        # 1. Calculate X: Oscillates back and forth using a cosine wave
-        # Multiplying by cycles * 2 * pi ensures it completes the requested number of full laps
+
+        # 1. Calculate unrotated local offsets from the center point
         angle_x = progress * cycles * 2 * math.pi
-        x = center_x + radius * math.cos(angle_x)
-        
-        # 2. Calculate Y: Stays fixed at the center line
-        y = center_y
-        
+
+        # Local offset along the default scrubbing axis
+        local_dx = radius * math.cos(angle_x)
+        local_dy = 0.0
+
+        # 2. Apply 2D rotation matrix using the direction angle
+        cos_dir = math.cos(direction)
+        sin_dir = math.sin(direction)
+
+        rotated_dx = local_dx * cos_dir - local_dy * sin_dir
+        rotated_dy = local_dx * sin_dir + local_dy * cos_dir
+
+        # Global world positions
+        x = center_x + rotated_dx
+        y = center_y + rotated_dy
+
         # 3. Calculate Z: Must be lowest (z_down) when X is at center_x.
-        # X is at the center when cos(angle_x) is 0, which means sin(angle_x) is at 1 or -1.
-        # By taking the absolute value of sin, we get a wave that hits 1 at every center crossing.
+        # This remains unchanged since Z logic depends entirely on the cycle progress.
         z_interpolation = abs(math.sin(angle_x))
-        
-        # Interpolate between z_top (when at the edges) and z_down (when at the center)
+
+        # Interpolate between z_top (at the edges) and z_down (at the center)
         z = z_top * (1 - z_interpolation) + z_down * z_interpolation
-        
+
         # Move the printer
         printer.move_to(x=x, y=y, z=z, feed_rate=FEED_RATE_WET)
 
@@ -56,6 +79,7 @@ def water_brush(printer, my_robot_calibration):
         center_y=y_water,
         z_top=z_water+4,
         z_down=z_water,
+        direction=(random.random() - .5) * 2 * (math.pi/4)
     )
     
     # lift up
@@ -69,6 +93,9 @@ def load_brush(printer, my_robot_calibration, color_index):
     # Move over the target well, dip down to paint height
     printer.move_to(x=x_paint, y=y_paint, feed_rate=FEED_RATE_TRAVEL)
 
+    # avoid always loading in the exact same position
+    y_paint += random.randint(-5, 5)
+
     print("Swirling brush to load paint...")
     scrub(
         printer,
@@ -76,7 +103,8 @@ def load_brush(printer, my_robot_calibration, color_index):
         center_y=y_paint,
         z_top=z_paint+4,
         z_down=z_paint,
-        radius=5
+        radius=5,
+        direction = random.random()*(2*math.pi)
     )
 
     # Move back up to clear the well completely before drawing or traveling
