@@ -55,7 +55,7 @@ class Camera:
         
         print(f"Saved: {filename}")
 
-        return img
+        return flipped_img
 
     @classmethod
     def close(cls):

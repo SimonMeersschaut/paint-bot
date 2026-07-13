@@ -113,16 +113,17 @@ class StrokePath(Command):
             "type": self.get_type(),
             "color": list(int(c) for c in self.color),
             "hex_color": self.hex_color,
-            # "pigment": round(float(self.pigment), 4),
+            "pigment": round(float(self.pigment), 4),
             "path": self.path,
             # "brushDiameter": float(self.brushDiameter)
         })
 
     def load_from_json(data: dict) -> object:
+        pigment = data.get("pigment", 1)
         return StrokePath(
             color = data["color"],
             path = data["path"],
-            pigment = None,
+            pigment = pigment,
             hex_color=data["hex_color"],
             brushDiameter=2,  #data["brushDiameter"], #FIXME
         )

@@ -17,6 +17,7 @@ class WebApp:
     _thread = None
     _on_fan_change = None
     _fan_mode = False
+    _progress = 0.0
     _slots = ("top_left", "top_right", "bottom_left", "bottom_right")
     _feeds = {slot: FeedType.camera_feed for slot in _slots}
     _images = {feed_type: None for feed_type in FeedType}
@@ -80,6 +81,7 @@ class WebApp:
                 cells=cls._grid(),
                 feed_types=list(FeedType),
                 fan_mode=cls._fan_mode,
+                progress=cls._progress,
             )
 
         @cls.app.route("/set-feed", methods=["POST"])
@@ -126,7 +128,7 @@ class WebApp:
 
     @classmethod
     def _run(cls):
-        cls.app.run(threaded=True, use_reloader=False)
+        cls.app.run(host="0.0.0.0", port=5000, threaded=True, use_reloader=False)
 
     @classmethod
     def start(cls):
@@ -150,3 +152,8 @@ class WebApp:
             feed_type = FeedType[feed_type]
         cls._images[feed_type] = image
         cls._image_versions[feed_type] += 1
+
+    @classmethod
+    def set_progress(cls, progress: float):
+        progress_value = float(progress)
+        cls._progress = max(0.0, min(1.0, progress_value))
