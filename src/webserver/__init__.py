@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 from threading import Thread
 
-from flask import Flask, abort, redirect, render_template, request, send_file, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
 
 
 class FeedType(Enum):
@@ -16,7 +16,7 @@ class WebApp:
     app = None
     _thread = None
     _on_fan_change = None
-    _fan_mode = False
+    _fan_mode = True # starts `on`
     _progress = 0.0
     _slots = ("top_left", "top_right", "bottom_left", "bottom_right")
     _feeds = {slot: FeedType.camera_feed for slot in _slots}
@@ -125,6 +125,10 @@ class WebApp:
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             return response
+
+        @cls.app.route("/progress", methods=["GET"])
+        def progress_route():
+            return jsonify(progress=cls._progress)
 
     @classmethod
     def _run(cls):

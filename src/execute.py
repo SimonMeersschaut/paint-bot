@@ -5,6 +5,7 @@ from robot import Camera
 from webserver import WebApp, FeedType
 from visualisation import get_stroke_frame
 from PIL import Image
+import cv2
 
 printer: Printer = SerialPrinter()
 WebApp.init(on_fan_change=printer.set_fan)
@@ -30,10 +31,10 @@ def hex_to_rgb(hex_str):
 
 printer.move_to(z=my_calibration.safe_height)
 
-START_INDEX = 545
+START_INDEX = 549
 
 expected_frame = get_stroke_frame(my_stroke_sequence, START_INDEX, do_annotate=False)
-WebApp.set_feed_image(FeedType.expected_feed, expected_frame.transpose(Image.FLIP_TOP_BOTTOM))
+WebApp.set_feed_image(FeedType.expected_feed, cv2.flip(expected_frame, 0))
 
 # if START_INDEX != 0:
 #     input("Start index != 0, do you want to continue? [y]")
@@ -65,7 +66,7 @@ for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue w
 
         WebApp.set_feed_image(FeedType.camera_feed, pil_picture)
         expected_frame = get_stroke_frame(my_stroke_sequence, index, do_annotate=False)
-        WebApp.set_feed_image(FeedType.expected_feed, expected_frame.transpose(Image.FLIP_TOP_BOTTOM))
+        WebApp.set_feed_image(FeedType.expected_feed, cv2.flip(expected_frame, 0))
     else:
         raise ValueError("Type not found.")
     

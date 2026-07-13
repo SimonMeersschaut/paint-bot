@@ -47,7 +47,7 @@
 
         .progress-fill {
             height: 100%;
-            width: calc({{ progress * 100 }}%);
+            width: 0%;
             background: linear-gradient(90deg, #5b8def, #64c7b0);
             transition: width 0.2s ease;
         }
@@ -123,7 +123,7 @@
                     <span>{{ '%.0f'|format(progress * 100) }}%</span>
                 </div>
                 <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ '%.0f'|format(progress * 100) }}">
-                    <div class="progress-fill"></div>
+                    <div class="progress-fill" data-progress-fill style="width: {{ '%.2f'|format(progress * 100) }}%;"></div>
                 </div>
             </div>
 
@@ -167,6 +167,37 @@
     </main>
 
     <script>
+        const progressUrl = "{{ url_for('progress_route') }}";
+        const progressFill = document.querySelector("[data-progress-fill]");
+        const progressTrack = document.querySelector(".progress-track");
+        const progressValueLabel = document.querySelector(".progress-label span");
+
+        function setProgress(progress) {
+            const percentage = Math.max(0, Math.min(100, progress * 100));
+            progressFill.style.width = percentage.toFixed(2) + "%";
+            progressTrack.setAttribute("aria-valuenow", percentage.toFixed(0));
+            progressValueLabel.textContent = percentage.toFixed(0) + "%";
+        }
+
+        async function refreshProgress() {
+            try {
+                const response = await fetch(progressUrl, { cache: "no-store" });
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                if (typeof data.progress === "number") {
+                    setProgress(data.progress);
+                }
+            } catch (error) {
+                // Ignore transient connection errors and try again on the next tick.
+            }
+        }
+
+        refreshProgress();
+        setInterval(refreshProgress, 2000);
+
         setInterval(() => {
             document.querySelectorAll("img[data-slot]").forEach((img) => {
                 img.src = img.dataset.src + "?t=" + Date.now();
