@@ -17,8 +17,9 @@ class WebApp:
     _thread = None
     _on_fan_change = None
     _fan_mode = True # starts `on`
+    
     _progress = 0.0
-    _slots = ("top_left", "top_right", "bottom_left", "bottom_right")
+    _slots = 2
     _feeds = {slot: FeedType.camera_feed for slot in _slots}
     _images = {feed_type: None for feed_type in FeedType}
     _image_versions = {feed_type: 0 for feed_type in FeedType}
@@ -27,12 +28,12 @@ class WebApp:
     def _grid(cls):
         return [
             {
-                "slot": slot,
-                "feed": cls._feeds[slot],
-                "has_image": cls._images[cls._feeds[slot]] is not None,
-                "version": cls._image_versions[cls._feeds[slot]],
+                "slot": slot_idx,
+                "feed": cls._feeds[slot_idx],
+                "has_image": cls._images[cls._feeds[slot_idx]] is not None,
+                "version": cls._image_versions[cls._feeds[slot_idx]],
             }
-            for slot in cls._slots
+            for slot_idx in range(cls._slots)
         ]
 
     @classmethod
