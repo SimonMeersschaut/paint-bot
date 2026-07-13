@@ -94,7 +94,7 @@ def load_brush(printer: Printer, my_robot_calibration, color_index):
     printer.move_to(x=x_paint, y=y_paint, feed_rate=FEED_RATE_TRAVEL)
 
     # avoid always loading in the exact same position
-    y_paint += random.randint(-5, 5)
+    y_paint += (random.random() - .5) * 2
 
     print("Swirling brush to load paint...")
     scrub(

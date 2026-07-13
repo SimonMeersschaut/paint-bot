@@ -124,7 +124,7 @@ class StrokePath(Command):
             path = data["path"],
             pigment = None,
             hex_color=data["hex_color"],
-            # brushDiameter=
+            brushDiameter=2,  #data["brushDiameter"], #FIXME
         )
 
 @dataclass

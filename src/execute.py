@@ -3,13 +3,12 @@ from robot import SerialPrinter, Printer
 from robot import load_brush, execute_stroke, water_brush
 from robot import Camera
 
-
 printer: Printer = SerialPrinter()
 printer.connect()
 
 Camera.start() # camera
 
-## Load Data
+# Load Data
 my_stroke_sequence = StrokeSequence.load_from_json("data/my_stroke_sequence.json")
 my_calibration = RobotCalibration.load("data/my_robot_calibration.json")
 
@@ -17,7 +16,6 @@ my_calibration = RobotCalibration.load("data/my_robot_calibration.json")
 my_stroke_sequence.resize_to(my_calibration.get_canvas_size())
 print(my_calibration.get_canvas_size())
 print(my_stroke_sequence.image_size)
-my_stroke_sequence.save_to_json("data/resized_stroke_sequence.json")
 
 ## Execute Stroke
 def hex_to_rgb(hex_str):
@@ -28,7 +26,12 @@ def hex_to_rgb(hex_str):
 
 printer.move_to(z=my_calibration.safe_height)
 
-for index in range(527 + 1, len(my_stroke_sequence.strokes)):   # continue where ended
+START_INDEX = 213
+
+if START_INDEX != 0:
+    input("Start index != 0, do you want to continue? [y]")
+
+for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue where ended
     print(f"Executing index: {index}")
     command = my_stroke_sequence.strokes[index]
     if type(command) == StrokePath:
