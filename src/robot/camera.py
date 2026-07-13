@@ -67,41 +67,61 @@ class Camera:
             cam = None
 
     @classmethod
-    def create_timelapse(cls, fps: int = 30):
-        if cam == False:
-            return
+    def create_timelapse(cls, fps: int = 10):
         
-        image_paths = sorted(OUTPUT_DIR.glob("photo_*.jpg"))
-
-        if not image_paths:
-            raise FileNotFoundError(f"No images found in {OUTPUT_DIR}")
-
         output_file = OUTPUT_DIR / f"timelapse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
 
         ffmpeg = shutil.which("ffmpeg")
         if ffmpeg is None:
             raise RuntimeError("ffmpeg is required to create a timelapse video")
 
+        # 1. Gather and sort all the frames
+        photo_files = sorted(OUTPUT_DIR.glob("photo_*.jpg"))
+        if not photo_files:
+            print("No photos found to create a timelapse.")
+            return
+
+        print(f"Processing {len(photo_files)} frames into a timelapse...")
+
+        # 2. Build the command using image2pipe
         command = [
             ffmpeg,
             "-y",
-            "-framerate",
-            str(fps),
-            "-pattern_type",
-            "glob",
-            "-i",
-            str(OUTPUT_DIR / "photo_*.jpg"),
-            "-c:v",
-            "libx264",
-            "-pix_fmt",
-            "yuv420p",
+            "-f", "image2pipe",       # Tell FFmpeg to expect a stream of images
+            "-vcodec", "mjpeg",       # The input stream consists of JPEGs
+            "-r", str(fps),           # Input frame rate
+            "-i", "-",                # Read from stdin (piped from Python)
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-r", str(fps),           # Output frame rate
             str(output_file),
         ]
 
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"ffmpeg failed to create timelapse:\n{result.stderr.strip()}"
-            )
+        # 3. Open the FFmpeg subprocess with a pipe for stdin
+        process = subprocess.Popen(
+            command, 
+            stdin=subprocess.PIPE, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE
+        )
 
-        print(f"Saved timelapse: {output_file} ({len(image_paths)} frames)")
+        try:
+            # 4. Feed every single photo's raw bytes directly to FFmpeg
+            for photo in photo_files:
+                with open(photo, "rb") as f:
+                    process.stdin.write(f.read())
+            
+            # Close stdin to signal to FFmpeg that the image stream is finished
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                raise RuntimeError(
+                    f"ffmpeg failed to create timelapse:\n{stderr.decode('utf-8').strip()}"
+                )
+
+            print(f"Successfully saved timelapse: {output_file}")
+
+        except Exception as e:
+            # Ensure the process is terminated if something goes wrong during the loop
+            process.kill()
+            raise e

@@ -1,13 +1,13 @@
 from datatypes import RobotCalibration, StrokeSequence, StrokePath, LoadBrush
 from robot import SerialPrinter, Printer
 from robot import load_brush, execute_stroke, water_brush
-from robot import start, close, take_picture, create_timelapse
+from robot import Camera
 
 
 printer: Printer = SerialPrinter()
 printer.connect()
 
-start() # camera
+Camera.start() # camera
 
 ## Load Data
 my_stroke_sequence = StrokeSequence.load_from_json("data/my_stroke_sequence.json")
@@ -28,7 +28,7 @@ def hex_to_rgb(hex_str):
 
 printer.move_to(z=my_calibration.safe_height)
 
-for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where ended
+for index in range(527 + 1, len(my_stroke_sequence.strokes)):   # continue where ended
     print(f"Executing index: {index}")
     command = my_stroke_sequence.strokes[index]
     if type(command) == StrokePath:
@@ -37,7 +37,6 @@ for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where 
             robot_calibration=my_calibration,
             stroke_sequence=my_stroke_sequence,
             index=index,
-            up_height = 7
         )
     elif type(command) == LoadBrush:
         # Gets the index of the current color in the color palette
@@ -47,16 +46,11 @@ for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where 
             if list(hex_to_rgb(entry["color"])) == list(command.color)
         ][0]
         # re-water the brush
-        water_brush(printer, my_calibration, down_turns=5)
-        printer.move_and_wait(
-            x=my_calibration.water_reservoir[0],
-            y=my_calibration.water_reservoir[1],
-            z=my_calibration.safe_height,
-        )
+        water_brush(printer, my_calibration)
         # Take picture
-        take_picture()
+        Camera.take_picture()
         # re-load brush
-        load_brush(printer, my_calibration, color_index, down_turns=3)
+        load_brush(printer, my_calibration, color_index)
     else:
         raise ValueError("Type not found.")
     
@@ -67,5 +61,5 @@ for index in range(35 + 1, len(my_stroke_sequence.strokes)):   # continue where 
 water_brush(printer, my_calibration)
 
 # Close camera and create timelapse
-close()
-create_timelapse()
+Camera.close()
+Camera.create_timelapse()
