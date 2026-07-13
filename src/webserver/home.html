@@ -21,6 +21,24 @@
             margin: 0 auto;
         }
 
+        .fan-controls {
+            grid-column: 1 / -1;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .fan-controls button {
+            padding: 8px 12px;
+            border: 1px solid #bbb;
+            background: #f2f2f2;
+            cursor: pointer;
+        }
+
         .cell {
             background: #fff;
             border: 1px solid #ddd;
@@ -70,6 +88,14 @@
 </head>
 <body>
     <main class="grid">
+        <section class="fan-controls">
+            <strong>Fan: {{ 'On' if fan_mode else 'Off' }}</strong>
+            <form method="post" action="{{ url_for('set_fan_route') }}">
+                <input type="hidden" name="mode" value="{{ 'off' if fan_mode else 'on' }}">
+                <button type="submit">Turn fan {{ 'off' if fan_mode else 'on' }}</button>
+            </form>
+        </section>
+
         {% for cell in cells %}
         <section class="cell">
             <form method="post" action="{{ url_for('set_feed_route') }}">
@@ -90,8 +116,8 @@
                 {% if cell.has_image %}
                 <img
                     data-slot="{{ cell.slot }}"
-                    data-src="{{ url_for('feed_image_route', slot=cell.slot) }}"
-                    src="{{ url_for('feed_image_route', slot=cell.slot) }}?v={{ cell.version }}"
+                    data-src="{{ url_for('feed_image_route', feed_name=cell.feed.name) }}"
+                    src="{{ url_for('feed_image_route', feed_name=cell.feed.name) }}?v={{ cell.version }}"
                     alt="{{ cell.feed.name }}"
                 >
                 {% else %}

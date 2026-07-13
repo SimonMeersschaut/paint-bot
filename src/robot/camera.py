@@ -29,7 +29,7 @@ class Camera:
         cam.start()
 
     @classmethod
-    def take_picture(cls, filename=None):
+    def take_picture_and_return(cls, filename=None):
         if cam == False:
             return
         
@@ -54,6 +54,8 @@ class Camera:
         flipped_img.save(str(filename))
         
         print(f"Saved: {filename}")
+
+        return img
 
     @classmethod
     def close(cls):

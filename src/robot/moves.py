@@ -103,7 +103,7 @@ def load_brush(printer: Printer, my_robot_calibration, color_index):
         center_y=y_paint,
         z_top=z_paint+4,
         z_down=z_paint,
-        radius=5,
+        radius=3.5,
         direction =(random.random() - .5) * 2 * (math.pi/6)
     )
 
