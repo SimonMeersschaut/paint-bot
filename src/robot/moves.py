@@ -1,5 +1,5 @@
 from datatypes import RobotCalibration, StrokeSequence, StrokePath
-from robot import SerialPrinter, Printer
+from robot import Printer
 import math
 import random
 
@@ -12,7 +12,7 @@ import math
 
 
 def scrub(
-    printer,
+    printer: Printer,
     center_x,
     center_y,
     z_top,
@@ -61,7 +61,7 @@ def scrub(
         # Move the printer
         printer.move_to(x=x, y=y, z=z, feed_rate=FEED_RATE_WET)
 
-def water_brush(printer, my_robot_calibration):
+def water_brush(printer: Printer, my_robot_calibration):
     x_water, y_water, z_water = my_robot_calibration.water_reservoir
     safe_z_height = my_robot_calibration.safe_height
     print("--- Starting Full Brush Prep Sequence ---")
@@ -79,14 +79,14 @@ def water_brush(printer, my_robot_calibration):
         center_y=y_water,
         z_top=z_water+4,
         z_down=z_water,
-        direction=(random.random() - .5) * 2 * (math.pi/4)
+        direction=random.random()*(2*math.pi)
     )
     
     # lift up
     printer.move_to(z=safe_z_height, feed_rate=FEED_RATE_TRAVEL)
 
 
-def load_brush(printer, my_robot_calibration, color_index):
+def load_brush(printer: Printer, my_robot_calibration, color_index):
     x_paint, y_paint, z_paint = my_robot_calibration.color_palette.color_positions[color_index]["position"]
     safe_z_height = my_robot_calibration.safe_height
     print(f"Moving to paint palette at ({x_paint}, {y_paint})...")
@@ -104,7 +104,7 @@ def load_brush(printer, my_robot_calibration, color_index):
         z_top=z_paint+4,
         z_down=z_paint,
         radius=5,
-        direction = random.random()*(2*math.pi)
+        direction =(random.random() - .5) * 2 * (math.pi/6)
     )
 
     # Move back up to clear the well completely before drawing or traveling
