@@ -142,12 +142,12 @@ def conduct_experiment(lite:bool, **hyper_parameters):
             if not np.any(segment_mask):
                 continue
 
-            ## Choose brush-size based on the pre-calculated brush_size_map
+            ## Choose brush-size based on the pre-calculated brush_diameter_map
             # Extract the brush size assigned to this specific segment region
-            chosen_brush_size = 4 # measured 4, 3 for artistic purposes; int(np.max(brush_size_map[segment_mask]))
+            chosen_brush_diameter = 4 # measured 4, 3 for artistic purposes; int(np.max(brush_diameter_map[segment_mask]))
             
             # Dynamically assign it to the supervisor configuration for this layer
-            stroke_generation_supervisor.brush_size = chosen_brush_size
+            stroke_generation_supervisor.brush_diameter = chosen_brush_diameter
 
             # Call the updated stroke generator function using dictionary unpacking (**)
             generate_strokes_for_layer(

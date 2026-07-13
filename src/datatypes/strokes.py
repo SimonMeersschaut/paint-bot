@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import json
 from abc import ABC, abstractclassmethod
+from datetime import datetime
 
 
 class StrokeSequence:
@@ -14,6 +15,8 @@ class StrokeSequence:
         with open(filepath, 'w', encoding='utf-8') as f:
             # Write opening structure and metadata
             f.write("{\n")
+            timestamp = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            f.write(f'  "date": "{timestamp}",\n')
             f.write(f'  "image_size": [{self.image_size[0]}, {self.image_size[1]}],\n')
             f.write(f'  "dimension_name": "{self.unit}",\n')
             f.write('  "strokes": [\n')

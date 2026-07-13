@@ -1,17 +1,14 @@
 import numpy as np
 import cv2
-from datatypes import StrokePath
+# from datatypes import StrokePath
 from .supervisor import Events
 from .hyperparameters import Hyperparameters
 
-def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, image_hsv,
-                  coverage_mask, stroke_sequence, stroke_generation_supervisor,
-                  source_y_idx, start_x_idx):
+def accept_stroke(path_np, stroke_length_pixels, palette_color, image, image_hsv,
+                  coverage_mask, stroke_generation_supervisor,
+                  source_y_idx, start_x_idx, brush_diameter: float):
     """Evaluate a candidate stroke for acceptance and update image/coverage/sequence.
-
-    Returns True when the stroke was accepted and added to `stroke_sequence`.
-    Returns False when the stroke was rejected (caller should increment attempts).
-    Side-effects: may update `coverage_mask`, `stroke_sequence`, and register events.
+    Returns accepted:bool, pigment|0
     """
     H, W = image.shape[:2]
 
@@ -34,9 +31,8 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     x_start, y_start = np.min(path_np, axis=0)
     x_end, y_end = np.max(path_np, axis=0)
 
-    pad = stroke_generation_supervisor.brush_size + 1
-    x_min_roi, y_min_roi = max(0, x_start - pad), max(0, y_start - pad)
-    x_max_roi, y_max_roi = min(W, x_end + pad), min(H, y_end + pad)
+    x_min_roi, y_min_roi = max(0, x_start - brush_diameter), max(0, y_start - brush_diameter)
+    x_max_roi, y_max_roi = min(W, x_end + brush_diameter), min(H, y_end + brush_diameter)
 
     roi_w = x_max_roi - x_min_roi
     roi_h = y_max_roi - y_min_roi
@@ -47,7 +43,7 @@ def accept_stroke(path, path_np, stroke_length_pixels, palette_color, image, ima
     pts_roi[:, 1] -= y_min_roi
 
     cv2.polylines(stroke_buffer_roi, [pts_roi.reshape((-1, 1, 2))], isClosed=False,
-                  color=255, thickness=stroke_generation_supervisor.brush_size)
+                  color=255, thickness=int(brush_diameter / 2))
 
     current_stroke_mask_roi = (stroke_buffer_roi > 0)
     coverage_mask_roi = coverage_mask[y_min_roi:y_max_roi, x_min_roi:x_max_roi]

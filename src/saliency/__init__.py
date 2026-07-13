@@ -1,12 +1,15 @@
 import cv2
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image
+# from PIL import Image
 from torchvision import models, transforms
 
 
 def generate_clean_saliency(raw_img):
+    """
+    returns blurred_saliency, img_cv
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Use a pre-trained MobileNetV3-Large. It has highly optimized semantic feature extraction
@@ -54,12 +57,15 @@ def generate_clean_saliency(raw_img):
     )
     heatmap_norm = (heatmap_norm * 255).astype(np.uint8)
 
-    # Blend high-level semantic focus (70%) with low-level fine details (30%)
-    fused_saliency = cv2.addWeighted(heatmap_norm, 0.7, fine_saliency, 0.3, 0)
+    # Blend high-level semantic focus with low-level fine details
+    high_level_importance = .5
+    fused_saliency = cv2.addWeighted(heatmap_norm, high_level_importance, fine_saliency, 1-high_level_importance, 0)
 
     # Smooth the transitions using a large Gaussian Kernel to match human eye fixations
     # Adjust the sigma (last parameter) to make the focus wider or narrower
-    blurred_saliency = cv2.GaussianBlur(fused_saliency, (55, 55), 0)
+    # blur_size = 20
+    # blurred_saliency = cv2.GaussianBlur(fused_saliency, (blur_size, blur_size), 0)
+    blurred_saliency = fused_saliency
 
     # Final normalization
     blurred_saliency = (
