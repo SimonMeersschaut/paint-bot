@@ -32,7 +32,7 @@ sequence = StrokeSequence(image_size=(800, 600))
 stroke = StrokePath(
     color=(255, 0, 0),  # Red
     path=[(0, 0), (100, 100), (200, 50)],
-    brushWidth=2
+    brushDiameter=2
 )
 sequence.strokes.append(stroke)
 

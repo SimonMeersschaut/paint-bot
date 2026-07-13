@@ -118,7 +118,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
         print(f"Stroke at index {index} requires at least 2 points for natural planning. Skipping.")
         return
 
-    print(f"--- Executing Natural Stroke {index} | Color: {stroke.color} | Width: {stroke.brushWidth} ---")
+    print(f"--- Executing Natural Stroke {index} | Color: {stroke.color} | Width: {stroke.brushDiameter} ---")
     
     # 3. Convert all path points to absolute world coordinates first
     abs_path = []

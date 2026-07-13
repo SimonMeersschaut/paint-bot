@@ -68,7 +68,7 @@ def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
         
         # Draw the continuous curve onto the overlay
         cv2.polylines(overlay, [pts], isClosed=False, color=color_bgr, 
-                        thickness=round(stroke.brushWidth / 2), lineType=cv2.LINE_AA)
+                        thickness=round(stroke.brushDiameter / 2), lineType=cv2.LINE_AA)
         
         # Perform alpha blending
         cv2.addWeighted(overlay, opacity, canvas, 1.0 - opacity, 0, canvas)

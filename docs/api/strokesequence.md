@@ -92,7 +92,7 @@ sequence.save_to_json("output/strokes.json")
   "strokes": [
     {
       "color": [255, 0, 0],
-      "brushWidth": 2,
+      "brushDiameter": 2,
       "path": [[0, 0], [100, 100], [200, 50]]
     }
   ]
@@ -159,12 +159,12 @@ sequence = StrokeSequence(image_size=(800, 600))
 red_stroke = StrokePath(
     color=(255, 0, 0),
     path=[(50, 50), (150, 50), (150, 150), (50, 150)],
-    brushWidth=3
+    brushDiameter=3
 )
 blue_stroke = StrokePath(
     color=(0, 0, 255),
     path=[(200, 200), (300, 300)],
-    brushWidth=2
+    brushDiameter=2
 )
 
 sequence.strokes.append(red_stroke)

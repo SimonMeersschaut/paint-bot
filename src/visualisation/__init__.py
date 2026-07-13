@@ -7,6 +7,23 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 import numpy as np
 
+from PIL import Image
+
+
+def rotate_if_vertical(img):
+    """Accepts a PIL Image object and rotates it if it's portrait."""
+    width, height = img.size
+
+    if height > width:
+        print(f"Image is vertical ({width}x{height}). Rotating 90 degrees...")
+        # Rotate 90 degrees clockwise
+        return img.transpose(Image.ROTATE_90)
+    else:
+        print(
+            f"Image is already horizontal ({width}x{height}). No rotation needed."
+        )
+        return img
+
 def show_np_image(np_image, *args, **kwargs):
     """Put the origin in the bottom left corner."""
 

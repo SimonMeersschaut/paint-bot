@@ -12,12 +12,18 @@ with open("data/my_robot_calibration.json", "r") as f:
     def hex_to_rgb(hex_str):
         hex_str = hex_str.lstrip("#")
         return [int(hex_str[i : i + 2], 16) for i in (0, 2, 4)]
+    
+    data = json.load(f)["color_palette"]
 
-    # Extract and convert the entire palette
-    COLOR_PALETTE = [
-        hex_to_rgb(entry["color"]) for entry in json.load(f)["color_palette"]
-        if entry.get("disabled", False) != True
-    ]
+# Extract and convert the entire palette
+COLOR_PALETTE = [
+    hex_to_rgb(entry["color"]) for entry in data
+    if entry.get("disabled", False) != True
+]
+PALETTE_HEX = [
+    entry["color"] for entry in data
+    if entry.get("disabled", False) != True
+]
 
 
 PALETTE_ARR = np.array(list(COLOR_PALETTE), dtype=np.float32)
@@ -89,6 +95,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_imag
 
             closest_idx = np.argmin(dists)
             palette_color = PALETTE_LIST[closest_idx]
+            hex_color = PALETTE_HEX[closest_idx]
         
         elif type(Hyperparameters.COLOR_METHOD) == KNearest:
             palette_color = np_k_nearest[source_y_idx, start_x_idx].astype(np.uint8)
@@ -120,7 +127,8 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_imag
                         color=tuple(int(c) for c in palette_color),
                         pigment=pigment,
                         path=path,
-                        brushWidth=stroke_generation_supervisor.brush_size,
+                        brushDiameter=stroke_generation_supervisor.brush_size,
+                        hex_color=hex_color,
                         )
                 )
 

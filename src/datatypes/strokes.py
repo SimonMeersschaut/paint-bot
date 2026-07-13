@@ -77,7 +77,7 @@ class StrokeSequence:
                 command.path = scaled_path
 
                 # 2. Scale the brush stroke thickness (ensuring it never drops below 1 pixel)
-                command.brushWidth = max(1, round(command.brushWidth * scale_brush))
+                command.brushDiameter = max(1, round(command.brushDiameter * scale_brush))
 
         # Update the canvas bounds to complete the resize operation
         self.image_size = dimensions
@@ -104,16 +104,18 @@ class StrokePath(Command):
     color: tuple[int, int, int] # (r, g, b)
     path: list[tuple[int, int]]  # (x, y)
     pigment: float # 1 = pure color, 0 = white
-    brushWidth: int = 2
+    hex_color: str
+    brushDiameter: int
     # all dimensions (if not specified otherwise) are pixels
 
     def to_json(self):
         return json.dumps({
             "type": self.get_type(),
             "color": list(int(c) for c in self.color),
+            "hex_color": self.hex_color,
             # "pigment": round(float(self.pigment), 4),
             "path": self.path,
-            # "brushWidth": float(self.brushWidth)
+            # "brushDiameter": float(self.brushDiameter)
         })
 
     def load_from_json(data: dict) -> object:
@@ -121,7 +123,8 @@ class StrokePath(Command):
             color = data["color"],
             path = data["path"],
             pigment = None,
-            # brushWidth=
+            hex_color=data["hex_color"],
+            # brushDiameter=
         )
 
 @dataclass
@@ -143,5 +146,5 @@ class LoadBrush(Command):
             color = data["color"],
             pigment = data["pigment"],
             deep_clean = data["deep_clean"],
-            # brushWidth=
+            # brushDiameter=
         )

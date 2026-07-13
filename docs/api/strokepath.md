@@ -19,7 +19,7 @@ from dataclasses import dataclass
 class StrokePath:
     color: tuple[int, int, int]  # (r, g, b)
     path: list[tuple[int, int]]   # [(x, y), ...]
-    brushWidth: int = 2
+    brushDiameter: int = 2
 ```
 
 ## Attributes
@@ -28,7 +28,7 @@ class StrokePath:
 |-----------|------|---------|-------------|
 | `color` | `tuple[int, int, int]` | Required | RGB color values (0-255 each) |
 | `path` | `list[tuple[int, int]]` | Required | List of coordinate points in pixels |
-| `brushWidth` | `int` | 2 | Stroke thickness in pixels |
+| `brushDiameter` | `int` | 2 | Stroke thickness in pixels |
 
 ## Creating a Stroke
 
@@ -51,7 +51,7 @@ stroke = StrokePath(
 stroke = StrokePath(
     color=(0, 0, 255),
     path=[(10, 10), (50, 50), (100, 10)],
-    brushWidth=5
+    brushDiameter=5
 )
 ```
 
@@ -66,7 +66,7 @@ stroke = StrokePath(
         (75, 80), (100, 100), (125, 80),
         (150, 100)
     ],
-    brushWidth=3
+    brushDiameter=3
 )
 ```
 
@@ -132,7 +132,7 @@ stroke = StrokePath(
         (0, 100),
         (0, 0)  # Close the shape
     ],
-    brushWidth=2
+    brushDiameter=2
 )
 ```
 
@@ -149,7 +149,7 @@ for i in range(5):
     stroke = StrokePath(
         color=(i * 50, 100, 200 - i * 40),
         path=[(0, i * 100), (800, i * 100)],
-        brushWidth=2
+        brushDiameter=2
     )
     sequence.strokes.append(stroke)
 
@@ -189,7 +189,7 @@ sequence.visualize()
 stroke = StrokePath(
     color=(255, 0, 0),
     path=[(0, 0), (100, 100)],
-    brushWidth=3
+    brushDiameter=3
 )
 
 # Access attributes
@@ -199,7 +199,7 @@ print(f"Color: R={red}, G={green}, B={blue}")
 start_x, start_y = stroke.path[0]
 print(f"Start: ({start_x}, {start_y})")
 
-print(f"Thickness: {stroke.brushWidth} pixels")
+print(f"Thickness: {stroke.brushDiameter} pixels")
 print(f"Path length: {len(stroke.path)} points")
 ```
 
