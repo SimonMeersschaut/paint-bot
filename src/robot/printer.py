@@ -91,38 +91,17 @@ class SerialPrinter(Printer):
         return "\n".join(response_lines)
 
     def move_and_wait(self, x, y, z):
-        target_x, target_y, target_z = x, y, z
-        timeout_seconds = 60.0
-        poll_interval_seconds = 0.2
-        tolerance = 0.05
-
-
-        deadline = time.monotonic() + timeout_seconds
         self.move_to(x, y, z)
-
         self.send_command("M400") # wait untill completion
 
-        # while True:
-        #     current_x, current_y, current_z = self.get_position()
-        #     print(current_x, current_y, current_z)
-
-        #     arrived = True
-        #     if target_x is not None and abs(current_x - target_x) > tolerance:
-        #         arrived = False
-        #     if target_y is not None and abs(current_y - target_y) > tolerance:
-        #         arrived = False
-        #     if target_z is not None and abs(current_z - target_z) > tolerance:
-        #         arrived = False
-
-        #     if arrived:
-        #         return current_x, current_y, current_z
-
-        #     if time.monotonic() >= deadline:
-        #         raise TimeoutError(
-        #             f"Printer did not reach target position ({target_x}, {target_y}, {target_z})"
-        #         )
-
-        #     time.sleep(poll_interval_seconds)
+    def set_fan(self, mode: bool):
+        """Turns the print cooling fan completely on (100% speed) or off."""
+        if mode:
+            # M106 S255 sets the fan speed to maximum (0-255 range)
+            self.send_command("M106 S255")
+        else:
+            # M107 turns the fan off
+            self.send_command("M107")
 
     def get_position(self):
         """Query the current printer position using a M114."""

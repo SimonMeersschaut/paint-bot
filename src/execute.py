@@ -2,9 +2,14 @@ from datatypes import RobotCalibration, StrokeSequence, StrokePath, LoadBrush
 from robot import SerialPrinter, Printer
 from robot import load_brush, execute_stroke, water_brush
 from robot import Camera
+from webserver import WebApp, FeedType
+from visualisation import get_stroke_frame
 
 printer: Printer = SerialPrinter()
 printer.connect()
+
+WebApp.init(on_fan_change=printer.set_fan)
+WebApp.start()
 
 Camera.start() # camera
 
@@ -51,9 +56,13 @@ for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue w
         # re-water the brush
         water_brush(printer, my_calibration)
         # Take picture
-        Camera.take_picture()
+        pil_picture = Camera.take_picture_and_return()
         # re-load brush
         load_brush(printer, my_calibration, color_index)
+
+        WebApp.set_feed_image(FeedType.camera_feed, pil_picture)
+        expected_frame = get_stroke_frame(my_stroke_sequence, index, do_annotate=False)
+        WebApp.set_feed_image(FeedType.expected_feed, expected_frame)
     else:
         raise ValueError("Type not found.")
     
