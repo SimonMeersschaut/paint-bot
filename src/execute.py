@@ -31,7 +31,7 @@ def hex_to_rgb(hex_str):
 
 printer.move_to(z=my_calibration.safe_height)
 
-START_INDEX = 549
+START_INDEX = 590
 
 expected_frame = get_stroke_frame(my_stroke_sequence, START_INDEX, do_annotate=False)
 WebApp.set_feed_image(FeedType.expected_feed, cv2.flip(expected_frame, 0))

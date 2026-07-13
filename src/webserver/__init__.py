@@ -17,10 +17,10 @@ class WebApp:
     _thread = None
     _on_fan_change = None
     _fan_mode = True # starts `on`
-    
+
     _progress = 0.0
     _slots = 2
-    _feeds = {slot: FeedType.camera_feed for slot in _slots}
+    _feeds = [FeedType.camera_feed, FeedType.expected_feed]
     _images = {feed_type: None for feed_type in FeedType}
     _image_versions = {feed_type: 0 for feed_type in FeedType}
 
@@ -87,12 +87,12 @@ class WebApp:
 
         @cls.app.route("/set-feed", methods=["POST"])
         def set_feed_route():
-            slot = request.form.get("slot", "")
+            slot_idx = int(request.form.get("slot", 0))
             feed_name = request.form.get("feed", "")
 
             try:
                 feed = FeedType[feed_name]
-                cls.set_feed(slot, feed)
+                cls.set_feed(slot_idx, feed)
             except (KeyError, AttributeError):
                 pass
 
@@ -146,10 +146,10 @@ class WebApp:
         return cls._thread
 
     @classmethod
-    def set_feed(cls, slot: str, type: FeedType):
-        if slot not in cls._feeds:
-            raise KeyError(slot)
-        cls._feeds[slot] = type
+    def set_feed(cls, slot_idx: int, type: FeedType):
+        if slot_idx > cls._slots:
+            raise KeyError(slot_idx)
+        cls._feeds[slot_idx] = type
 
     @classmethod
     def set_feed_image(cls, feed_type: FeedType, image):

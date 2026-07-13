@@ -139,8 +139,8 @@
             <form method="post" action="{{ url_for('set_feed_route') }}">
                 <input type="hidden" name="slot" value="{{ cell.slot }}">
                 <div class="controls">
-                    <label for="{{ cell.slot }}">{{ cell.slot.replace('_', ' ') }}</label>
-                    <select id="{{ cell.slot }}" name="feed" onchange="this.form.submit()">
+                    <label for="slot-{{ cell.slot }}">Slot {{ cell.slot + 1 }}</label>
+                    <select id="slot-{{ cell.slot }}" name="feed" onchange="this.form.submit()">
                         {% for feed in feed_types %}
                         <option value="{{ feed.name }}" {% if feed == cell.feed %}selected{% endif %}>
                             {{ feed.name.replace('_', ' ') }}
@@ -167,6 +167,7 @@
     </main>
 
     <script>
+        const refreshInterval = 10; // seconds
         const progressUrl = "{{ url_for('progress_route') }}";
         const progressFill = document.querySelector("[data-progress-fill]");
         const progressTrack = document.querySelector(".progress-track");
@@ -196,13 +197,13 @@
         }
 
         refreshProgress();
-        setInterval(refreshProgress, 2000);
+        setInterval(refreshProgress, refreshInterval * 1000);
 
         setInterval(() => {
             document.querySelectorAll("img[data-slot]").forEach((img) => {
                 img.src = img.dataset.src + "?t=" + Date.now();
             });
-        }, 1000);
+        }, refreshInterval * 1000);
     </script>
 </body>
 </html>
