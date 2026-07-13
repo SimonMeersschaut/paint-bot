@@ -56,8 +56,10 @@ class SerialPrinter(Printer):
                     
                     if self.connection and self.connection.is_open:
                         self.send_command("M502") 
+                        self.set_fan(True)
                         self.home()
                         self.send_command("G90")
+                        print("Connected succesfully.")
                         return
                 except serial.SerialException as e:
                     self.connection = None
@@ -65,7 +67,7 @@ class SerialPrinter(Printer):
                     raise RuntimeError("Not connected!")
         raise RuntimeError("No connection found!")
 
-    def send_command(self, command: str) -> str:
+    def send_command(self, command: str, wait_for_response=True) -> str:
         """
         Sends a raw G-code string, blocks until GRBL responds with 'ok' or 'error',
         and returns the response.
@@ -79,6 +81,9 @@ class SerialPrinter(Printer):
         self.connection.write(cmd.encode('utf-8'))
         
         response_lines = []
+        if not wait_for_response:
+            return 
+        
         while True:
             line = self.connection.readline().decode('utf-8').strip()
             if line:
@@ -98,10 +103,10 @@ class SerialPrinter(Printer):
         """Turns the print cooling fan completely on (100% speed) or off."""
         if mode:
             # M106 S255 sets the fan speed to maximum (0-255 range)
-            self.send_command("M106 S255")
+            self.send_command("M106 S255", wait_for_response = False)
         else:
             # M107 turns the fan off
-            self.send_command("M107")
+            self.send_command("M107", wait_for_response = False)
 
     def get_position(self):
         """Query the current printer position using a M114."""

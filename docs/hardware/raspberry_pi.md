@@ -27,6 +27,7 @@ sudo apt install -y python3-torch
 sudo apt install -y python3-skimage
 sudo apt install -y python3-opencv
 sudo apt install -y python3-ipykernel
+sudo apt install -y python3-flask
 
 # SSH
 ssh-keygen -t ed25519 -C "simon.meersschaut@gmail.com"

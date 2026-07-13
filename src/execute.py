@@ -4,13 +4,12 @@ from robot import load_brush, execute_stroke, water_brush
 from robot import Camera
 from webserver import WebApp, FeedType
 from visualisation import get_stroke_frame
+from PIL import Image
 
 printer: Printer = SerialPrinter()
-printer.connect()
-
 WebApp.init(on_fan_change=printer.set_fan)
 WebApp.start()
-
+printer.connect()
 Camera.start() # camera
 
 # Load Data
@@ -31,12 +30,16 @@ def hex_to_rgb(hex_str):
 
 printer.move_to(z=my_calibration.safe_height)
 
-START_INDEX = 213
+START_INDEX = 545
 
-if START_INDEX != 0:
-    input("Start index != 0, do you want to continue? [y]")
+expected_frame = get_stroke_frame(my_stroke_sequence, START_INDEX, do_annotate=False)
+WebApp.set_feed_image(FeedType.expected_feed, expected_frame.transpose(Image.FLIP_TOP_BOTTOM))
+
+# if START_INDEX != 0:
+#     input("Start index != 0, do you want to continue? [y]")
 
 for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue where ended
+    WebApp.set_progress(index/len(my_stroke_sequence.strokes))
     print(f"Executing index: {index}")
     command = my_stroke_sequence.strokes[index]
     if type(command) == StrokePath:
@@ -62,7 +65,7 @@ for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue w
 
         WebApp.set_feed_image(FeedType.camera_feed, pil_picture)
         expected_frame = get_stroke_frame(my_stroke_sequence, index, do_annotate=False)
-        WebApp.set_feed_image(FeedType.expected_feed, expected_frame)
+        WebApp.set_feed_image(FeedType.expected_feed, expected_frame.transpose(Image.FLIP_TOP_BOTTOM))
     else:
         raise ValueError("Type not found.")
     
