@@ -18,7 +18,7 @@ def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
         A numpy array representing the frame with dimensions from image_size and annotations.
     """
 
-    opacity=0.7
+    opacity=0.5
     
     # Initialize the single-entry cache attribute if it doesn't exist
     if not hasattr(get_stroke_frame, "cache"):
@@ -63,20 +63,15 @@ def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
         # Reshape path points into a compatible numpy matrix array
         pts = np.array(stroke.path, dtype=np.int32).reshape((-1, 1, 2))
         
-        if opacity >= 1.0:
-            # Shortcut for full opacity: draw directly onto canvas
-            cv2.polylines(canvas, [pts], isClosed=False, color=color_bgr, 
-                          thickness=int(stroke.brushWidth), lineType=cv2.LINE_AA)
-        else:
-            # Create a localized transparent overlay image layer for alpha blending
-            overlay = canvas.copy()
-            
-            # Draw the continuous curve onto the overlay
-            cv2.polylines(overlay, [pts], isClosed=False, color=color_bgr, 
-                          thickness=int(stroke.brushWidth), lineType=cv2.LINE_AA)
-            
-            # Perform alpha blending
-            cv2.addWeighted(overlay, opacity, canvas, 1.0 - opacity, 0, canvas)
+        # Create a localized transparent overlay image layer for alpha blending
+        overlay = canvas.copy()
+        
+        # Draw the continuous curve onto the overlay
+        cv2.polylines(overlay, [pts], isClosed=False, color=color_bgr, 
+                        thickness=round(stroke.brushWidth / 2), lineType=cv2.LINE_AA)
+        
+        # Perform alpha blending
+        cv2.addWeighted(overlay, opacity, canvas, 1.0 - opacity, 0, canvas)
 
 
     # Update the single cache entry with the final state of this current run

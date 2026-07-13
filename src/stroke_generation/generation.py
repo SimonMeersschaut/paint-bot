@@ -25,7 +25,7 @@ PALETTE_LIST = list(COLOR_PALETTE)
 
 # acceptance constants moved to acceptance.py
 
-def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_image, grad, coverage_mask, padding_mask,
+def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_image, vector_field, coverage_mask, padding_mask,
                                 stroke_generation_supervisor: object, np_k_nearest):
     """
     TODO
@@ -36,7 +36,6 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_imag
     image_hsv = cv2.cvtColor(np_working_image, cv2.COLOR_RGB2HSV) # .astype(np.float32)
 
     H, W, _ = np_image.shape
-    gy, gx = grad
     segment_mask = (resized_segments == label)
     total_sp_pixels = np.sum(segment_mask)
     
@@ -97,7 +96,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_imag
             raise ValueError("Color method not recognized.")
 
         start_point = (start_x_idx, source_y_idx)
-        path, stroke_length_pixels = expand_point(np_working_image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
+        path, stroke_length_pixels = expand_point(np_working_image, H, W, vector_field, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor)
         
         if stroke_length_pixels >= Hyperparameters.MIN_LEN:
             path_np = np.array(path, dtype=np.int32)

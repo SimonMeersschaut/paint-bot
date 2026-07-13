@@ -4,19 +4,20 @@ import numpy as np
 import math
 from .hyperparameters import Hyperparameters
 
-def expand_point(image, H, W, gx, gy, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor):
+def expand_point(image, H, W, vector_field, start_point, segment_mask, coverage_mask, start_x_idx, source_y_idx, palette_color, stroke_generation_supervisor):
     path = [start_point]
     stroke_length_pixels = 0
+    
+    vector_field_x, vector_field_y = vector_field
 
     curr_x, curr_y = float(start_x_idx), float(source_y_idx)
     last_dx, last_dy = 0.0, 0.0
     for _ in range(Hyperparameters.MAX_LEN):
         map_y, map_x = int(np.clip(curr_y, 0, H - 1)), int(np.clip(curr_x, 0, W - 1))
 
-        gx_val = gx[map_y, map_x]
-        gy_val = gy[map_y, map_x]
+        dx = vector_field_x[map_y, map_x]
+        dy = vector_field_y[map_y, map_x]
 
-        dx, dy = -gy_val, gx_val
         mag = np.sqrt(dx**2 + dy**2)
 
         if mag == 0:
