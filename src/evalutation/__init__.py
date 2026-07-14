@@ -1,11 +1,9 @@
-# Evaluate a StrokeSequence by comparing rendered strokes against the target image.
-from visualisation import visualize_stroke_sequence
-from stroke_generation.hyperparameters import Hyperparameters
-from visualisation import show_np_image
+"""Feature-based evaluation for rendered paint-bot images."""
+
+from functools import lru_cache
 
 import numpy as np
-import cv2
-from PIL import ImageFilter
+from PIL import Image
 
 def _to_uint8_rgb(arr):
     """Normalize numpy image to uint8 RGB format.
@@ -25,49 +23,98 @@ def _to_uint8_rgb(arr):
         raise TypeError("Expected numpy array for image")
 
 
-def evaluate(pil_resized_image, stroke_sequence, np_padded_mask_resized, show_debug=False) -> float:
-    """Compute a weighted mean squared error between target image and rendered strokes.
+def _to_pil_rgb(image):
+    if isinstance(image, Image.Image):
+        return image.convert("RGB")
 
-    - np_resized_image: numpy array (H, W, 3) in RGB (uint8 or float [0,1]).
-    - stroke_sequence: StrokeSequence; rendered using `visualize_stroke_sequence`.
+    array = np.asarray(image)
 
-    Returns a single float: the weighted MSE over HSV channels using `HSV_WEIGHTS`.
+    if array.ndim == 2:
+        array = np.repeat(array[:, :, None], 3, axis=2)
+    elif array.ndim == 3 and array.shape[2] == 1:
+        array = np.repeat(array, 3, axis=2)
+    elif array.ndim != 3 or array.shape[2] < 3:
+        raise ValueError(f"Expected a grayscale or RGB image, got shape {array.shape}")
+
+    return Image.fromarray(_to_uint8_rgb(array[:, :, :3]), mode="RGB")
+
+
+def _apply_attention_mask(image: Image.Image, attention_mask) -> Image.Image:
+    image_array = np.asarray(image.convert("RGB"), dtype=np.uint8)
+    mask = np.asarray(attention_mask)
+
+    if mask.ndim > 2:
+        mask = np.any(mask, axis=tuple(range(2, mask.ndim)))
+
+    mask = mask.astype(bool)
+
+    if mask.shape != image_array.shape[:2]:
+        raise ValueError(
+            f"Attention mask shape {mask.shape} does not match image shape {image_array.shape[:2]}"
+        )
+
+    if not np.any(mask):
+        raise ValueError("Attention mask is empty")
+
+    masked_array = image_array.copy()
+    masked_array[~mask] = 0
+
+    rows, cols = np.where(mask)
+    top, bottom = rows.min(), rows.max() + 1
+    left, right = cols.min(), cols.max() + 1
+
+    return Image.fromarray(masked_array[top:bottom, left:right], mode="RGB")
+
+
+@lru_cache(maxsize=1)
+def _load_dinov2_model():
+    try:
+        import torch
+        from transformers import AutoImageProcessor, AutoModel
+    except ImportError as exc:
+        raise RuntimeError(
+            "Feature evaluation requires 'torch' and 'transformers' to be installed."
+        ) from exc
+
+    model_name = "facebook/dinov2-small"
+    processor = AutoImageProcessor.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+    return processor, model, device, torch
+
+
+def _extract_features(images):
+    processor, model, device, torch = _load_dinov2_model()
+    inputs = processor(images=images, return_tensors="pt")
+    pixel_values = inputs["pixel_values"].to(device)
+
+    with torch.no_grad():
+        outputs = model(pixel_values=pixel_values)
+        hidden_states = outputs.last_hidden_state
+        cls_token = hidden_states[:, 0, :]
+        pooled_tokens = hidden_states[:, 1:, :].mean(dim=1)
+        features = torch.cat([cls_token, pooled_tokens], dim=-1)
+        features = torch.nn.functional.normalize(features, dim=-1)
+
+    return features.cpu().numpy().astype(np.float32)
+
+
+def evaluate(np_target_image, np_current_image, attention_mask=None) -> float:
+    """Return a feature-space error between two images using DINOv2.
+
+    The images are converted to RGB, resized by the DINOv2 processor, encoded,
+    and compared with mean squared error in the normalized feature space.
+    Lower values indicate closer images.
     """
-    mask = np.asarray(np_padded_mask_resized)        # convert if it's PIL or similar
-    mask_bool = mask.astype(bool) 
+    target_image = _to_pil_rgb(np_target_image)
+    current_image = _to_pil_rgb(np_current_image)
 
-    # Render strokes to an image (PIL) without annotations
-    pil_render = visualize_stroke_sequence(stroke_sequence, do_annotate=False)
-    render_np = np.array(pil_render)  # RGB uint8
+    if attention_mask is not None:
+        target_image = _apply_attention_mask(target_image, attention_mask)
+        current_image = _apply_attention_mask(current_image, attention_mask)
 
-    pil_blurred_image = pil_resized_image.filter(ImageFilter.GaussianBlur(radius=3))
-    np_resized_blurred_image = np.array(pil_blurred_image)
-
-    target = _to_uint8_rgb(np_resized_blurred_image)
-    render = _to_uint8_rgb(render_np)
-
-    if target.shape != render.shape:
-        raise ValueError(f"Shape mismatch: target {target.shape} vs render {render.shape} vs mask {mask_bool.shape}")
-
-    # Convert to HSV (OpenCV uses H:0-179, S:0-255, V:0-255)
-    target_hsv = cv2.cvtColor(target, cv2.COLOR_RGB2HSV).astype(np.float32)
-    render_hsv = cv2.cvtColor(render, cv2.COLOR_RGB2HSV).astype(np.float32)
-
-    # Hue cyclic difference
-    hue_diff = np.abs(target_hsv[:, :, 0] - render_hsv[:, :, 0])
-    hue_diff = np.minimum(hue_diff, 180.0 - hue_diff)
-
-    sat_diff = target_hsv[:, :, 1] - render_hsv[:, :, 1]
-    val_diff = target_hsv[:, :, 2] - render_hsv[:, :, 2]
-
-    if show_debug:
-        show_np_image(np.where(mask_bool, sat_diff, 0.0))
-
-    # Weighted per-pixel squared error
-    weights = np.asarray(Hyperparameters.HSV_WEIGHTS, dtype=np.float32)
-    per_pixel = (weights[0] * (hue_diff ** 2) +
-                 weights[1] * (sat_diff ** 2) +
-                 weights[2] * (val_diff ** 2))
-    
-    mse = float(np.mean(per_pixel))
-    return mse
+    target_features, current_features = _extract_features([target_image, current_image])
+    difference = target_features - current_features
+    return float(np.mean(difference ** 2))

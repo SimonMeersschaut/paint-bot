@@ -27,7 +27,10 @@ def rotate_if_vertical(img):
 def show_np_image(np_image, *args, **kwargs):
     """Put the origin in the bottom left corner."""
 
-    plt.imshow(np_image, origin="lower", *args, **kwargs)
+    if np.asarray(np_image).ndim == 1:
+        plt.plot(np_image, *args, **kwargs)
+    else:
+        plt.imshow(np_image, origin="lower", *args, **kwargs)
     plt.show()
 
 def show_pil_image(pil):
@@ -39,7 +42,7 @@ def resize_image(img: object, CANVAS_SIZE):
     Unified entry point that pads and resizes either a PIL Image 
     or a NumPy ndarray to CANVAS_SIZE while preserving aspect ratio.
     """
-    if isinstance(img, np.ndarray):
+    if isinstance(img, np.ndarray, CANVAS_SIZE):
         # Route to the ndarray processor
         return resize_image_ndarray(img)
     else:
@@ -50,7 +53,7 @@ def resize_image(img: object, CANVAS_SIZE):
             PADDING_COLOR = (0, 0, 0)  # Tuple for RGB images
         return ImageOps.pad(img, CANVAS_SIZE, color=PADDING_COLOR)
 
-def resize_image_ndarray(image_array: np.ndarray) -> np.ndarray:
+def resize_image_ndarray(image_array: np.ndarray, CANVAS_SIZE) -> np.ndarray:
     """
     Pads and resizes a NumPy ndarray to CANVAS_SIZE while maintaining aspect ratio.
     Automatically handles arbitrary channels (Grayscale, RGB, BGR, or multi-band masks).
