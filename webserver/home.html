@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paint bot</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .fan-controls {
+            grid-column: 1 / -1;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .progress-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 14px;
+            border-radius: 999px;
+            background: #ececec;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #5b8def, #64c7b0);
+            transition: width 0.2s ease;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .fan-controls button {
+            padding: 8px 12px;
+            border: 1px solid #bbb;
+            background: #f2f2f2;
+            cursor: pointer;
+        }
+
+        .cell {
+            background: #fff;
+            border: 1px solid #ddd;
+            min-height: 220px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        select {
+            width: 100%;
+            padding: 6px;
+        }
+
+        .feed-preview {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #ccc;
+            background: #fafafa;
+            color: #666;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .feed-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        @media (max-width: 700px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="grid">
+        <section class="fan-controls">
+            <div class="progress-block" aria-label="Task progress">
+                <div class="progress-label">
+                    <strong>Progress</strong>
+                    <span>{{ '%.0f'|format(progress * 100) }}%</span>
+                </div>
+                <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ '%.0f'|format(progress * 100) }}">
+                    <div class="progress-fill" data-progress-fill style="width: {{ '%.2f'|format(progress * 100) }}%;"></div>
+                </div>
+            </div>
+
+            <strong>Fan: {{ 'On' if fan_mode else 'Off' }}</strong>
+            <form method="post" action="{{ url_for('set_fan_route') }}">
+                <input type="hidden" name="mode" value="{{ 'off' if fan_mode else 'on' }}">
+                <button type="submit">Turn fan {{ 'off' if fan_mode else 'on' }}</button>
+            </form>
+        </section>
+
+        {% for cell in cells %}
+        <section class="cell">
+            <form method="post" action="{{ url_for('set_feed_route') }}">
+                <input type="hidden" name="slot" value="{{ cell.slot }}">
+                <div class="controls">
+                    <label for="slot-{{ cell.slot }}">Slot {{ cell.slot + 1 }}</label>
+                    <select id="slot-{{ cell.slot }}" name="feed" onchange="this.form.submit()">
+                        {% for feed in feed_types %}
+                        <option value="{{ feed.name }}" {% if feed == cell.feed %}selected{% endif %}>
+                            {{ feed.name.replace('_', ' ') }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+
+            <div class="feed-preview">
+                {% if cell.has_image %}
+                <img
+                    data-slot="{{ cell.slot }}"
+                    data-src="{{ url_for('feed_image_route', feed_name=cell.feed.name) }}"
+                    src="{{ url_for('feed_image_route', feed_name=cell.feed.name) }}?v={{ cell.version }}"
+                    alt="{{ cell.feed.name }}"
+                >
+                {% else %}
+                {{ cell.feed.name.replace('_', ' ') }}
+                {% endif %}
+            </div>
+        </section>
+        {% endfor %}
+    </main>
+
+    <script>
+        const refreshInterval = 10; // seconds
+        const progressUrl = "{{ url_for('progress_route') }}";
+        const progressFill = document.querySelector("[data-progress-fill]");
+        const progressTrack = document.querySelector(".progress-track");
+        const progressValueLabel = document.querySelector(".progress-label span");
+
+        function setProgress(progress) {
+            const percentage = Math.max(0, Math.min(100, progress * 100));
+            progressFill.style.width = percentage.toFixed(2) + "%";
+            progressTrack.setAttribute("aria-valuenow", percentage.toFixed(0));
+            progressValueLabel.textContent = percentage.toFixed(0) + "%";
+        }
+
+        async function refreshProgress() {
+            try {
+                const response = await fetch(progressUrl, { cache: "no-store" });
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                if (typeof data.progress === "number") {
+                    setProgress(data.progress);
+                }
+            } catch (error) {
+                // Ignore transient connection errors and try again on the next tick.
+            }
+        }
+
+        refreshProgress();
+        setInterval(refreshProgress, refreshInterval * 1000);
+
+        setInterval(() => {
+            document.querySelectorAll("img[data-slot]").forEach((img) => {
+                img.src = img.dataset.src + "?t=" + Date.now();
+            });
+        }, refreshInterval * 1000);
+    </script>
+</body>
+</html>
