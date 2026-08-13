@@ -1,5 +1,5 @@
-from datatypes import RobotCalibration, StrokeSequence, StrokePath
-from robot import Printer
+from execution.datatypes import RobotCalibration, StrokeSequence, StrokePath
+from execution.robot import Printer
 import math
 import random
 
