@@ -2,6 +2,9 @@ from enum import Enum, auto
 from io import BytesIO
 from pathlib import Path
 from threading import Thread
+import glob
+import cv2
+from robot import Camera
 
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
 
@@ -14,15 +17,30 @@ class FeedType(Enum):
 
 class WebApp:
     app = None
-    _thread = None
     _on_fan_change = None
     _fan_mode = True # starts `on`
+    _printer = None
+    _running = False
 
     _progress = 0.0
     _slots = 2
     _feeds = [FeedType.camera_feed, FeedType.expected_feed]
     _images = {feed_type: None for feed_type in FeedType}
     _image_versions = {feed_type: 0 for feed_type in FeedType}
+    _project = ""
+
+    @classmethod
+    def get_projects(cls) -> list[str]:
+        files = glob.glob("data/stroke_renders/*.json")
+        project_names = [Path(file).stem for file in files]
+        return project_names
+
+    @classmethod
+    def set_project(cls, project: str):
+        if not project in cls.get_projects():
+            raise ValueError("Project not valid.")
+            
+        cls._project = project
 
     @classmethod
     def _grid(cls):
@@ -51,8 +69,6 @@ class WebApp:
             return send_file(buffer, mimetype="image/png", max_age=0)
 
         try:
-            import cv2
-
             ok, encoded = cv2.imencode(".png", image)
             if ok:
                 return send_file(BytesIO(encoded.tobytes()), mimetype="image/png", max_age=0)
@@ -62,7 +78,8 @@ class WebApp:
         abort(415)
 
     @classmethod
-    def init(cls, *, on_fan_change=None):
+    def init(cls, printer, *, on_fan_change=None):
+        cls._printer = printer
         if on_fan_change is not None and not callable(on_fan_change):
             raise TypeError("on_fan_change must be callable or None")
 
@@ -82,7 +99,10 @@ class WebApp:
                 cells=cls._grid(),
                 feed_types=list(FeedType),
                 fan_mode=cls._fan_mode,
+                running=cls._running,
                 progress=cls._progress,
+                projects=cls.get_projects(),
+                current_project=cls._project,
             )
 
         @cls.app.route("/set-feed", methods=["POST"])
@@ -116,6 +136,13 @@ class WebApp:
 
             return redirect(url_for("home"))
 
+        @cls.app.route("/set-project", methods=["POST"])
+        def set_project_route():
+            project = request.form.get("project", "").strip()
+            if project:
+                cls.set_project(project)
+            return redirect(url_for("home"))
+
         @cls.app.route("/feed-image/<feed_name>", methods=["GET"])
         def feed_image_route(feed_name):
             try:
@@ -131,19 +158,29 @@ class WebApp:
         def progress_route():
             return jsonify(progress=cls._progress)
 
+        @cls.app.route("/start", methods=["POST"])
+        def start_route():
+            from execution import ExecutionDaemon
+            kwargs = {"printer": cls._printer, "project_name": cls._project}
+            cls._execution_thread = Thread(target=ExecutionDaemon.run_thread, kwargs=kwargs, daemon=True)
+            cls._execution_thread.start()
+            cls._running = True
+            return redirect(url_for("home"))
+
+        @cls.app.route("/stop", methods=["POST"])
+        def stop_route():
+            cls._running = False
+            return redirect(url_for("home"))
+
     @classmethod
     def _run(cls):
         cls.app.run(host="0.0.0.0", port=5000, threaded=True, use_reloader=False)
 
     @classmethod
-    def start(cls):
-        cls.init()
-        if cls._thread and cls._thread.is_alive():
-            return cls._thread
-
-        cls._thread = Thread(target=cls._run, daemon=True)
-        cls._thread.start()
-        return cls._thread
+    def start_server(cls):
+        Camera.start()
+        cls._printer.connect()
+        cls._run()
 
     @classmethod
     def set_feed(cls, slot_idx: int, type: FeedType):
