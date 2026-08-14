@@ -1,14 +1,12 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
 class Line:
     positions: list[tuple[float, float]]
-    opacity: float = 0.0
+    pigment: float = 0.0
     darkness: float = 0.0
     contour_strength: float = 0.0
-    pigment: float = 0.0
-    metadata: dict = field(default_factory=dict)
 
     def to_string(self, min_x, min_y, pad):
         return ",".join([
@@ -18,14 +16,12 @@ class Line:
 
     def to_dict(self):
         payload = {
-            "points": [list(point) for point in self.positions],
-            "opacity": self.opacity,
-            "darkness": self.darkness,
-            "contour_strength": self.contour_strength,
+            "type": "StrokePath",
             "pigment": round(self.pigment, 3),
+            "darkness": round(float(self.darkness), 3),
+            "contour_strength": round(float(self.contour_strength), 3),
+            "path": [list(point) for point in self.positions],
         }
-        if self.metadata:
-            payload["metadata"] = self.metadata
         return payload
 
     @classmethod
@@ -35,9 +31,7 @@ class Line:
     def copy_with_points(self, points):
         return Line(
             positions=[tuple(point) for point in points],
-            opacity=self.opacity,
+            pigment=self.pigment,
             darkness=self.darkness,
             contour_strength=self.contour_strength,
-            pigment=self.pigment,
-            metadata=dict(self.metadata),
         )

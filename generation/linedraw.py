@@ -2,13 +2,15 @@ from random import *
 import math
 import argparse
 
-from pigment import calculate_pigment, normalize_stroke_distribution
+from pigment import calculate_pigment
 from PIL import Image, ImageDraw, ImageOps
 
 from filters import *
+from stroke_ordering import sort_strokes
 from strokesort import *
 import perlin
 from util import *
+from datatypes import LoadBrush, StrokePath
 from lines import Line
 
 no_cv = False
@@ -172,6 +174,8 @@ def hatch(IM,sc=16):
 
 
 def _as_line(stroke):
+    if isinstance(stroke, LoadBrush):
+        return None
     if isinstance(stroke, Line):
         return stroke
     return Line.from_points(stroke)
@@ -255,38 +259,48 @@ def sketch(path):
         contour_strength = measure_stroke_contour_strength(IM, stroke)
         calculate_pigment(stroke, avg_darkness, contour_strength, image=IM)
 
-    lines = sortlines(lines)
-    normalize_stroke_distribution(lines)
+    lines = sort_strokes(lines)
     if show_bitmap:
         disp = Image.new("RGB",(resolution,resolution*h//w),(255,255,255))
         draw = ImageDraw.Draw(disp)
         for stroke in lines:
+            if isinstance(stroke, LoadBrush):
+                continue
             draw.line(stroke.positions,(0,0,0),5)
         disp.show()
 
-    f = open(export_path,'w')
-    f.write(makesvg(lines))
-    f.close()
-    print(len(lines),"strokes.")
-    print("done.")
-    return lines
-
-
-def makesvg(lines):
-    print("generating svg file...")
-    if not lines:
-        return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
-
-    strokes = [_as_line(line) for line in lines]
+    strokes = [line for line in (_as_line(line) for line in lines) if line is not None]
     all_points = [p for stroke in strokes for p in stroke.positions]
+    
     min_x = min(p[0] for p in all_points)
     min_y = min(p[1] for p in all_points)
     max_x = max(p[0] for p in all_points)
     max_y = max(p[1] for p in all_points)
 
-    pad = 20
     width = max_x - min_x
     height = max_y - min_y
+
+    f = open(export_path,'w')
+    f.write(makesvg(strokes, width, height))
+    f.close()
+    print(len(lines),"strokes.")
+    print("done.")
+
+    return lines, max_x, max_y
+
+def makesvg(strokes, width=None, height=None):
+    print("generating svg file...")
+    if not strokes:
+        return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
+
+    if width is None or height is None:
+        all_points = [point for stroke in strokes for point in getattr(stroke, 'positions', [])]
+        if not all_points:
+            return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
+        width = max(point[0] for point in all_points) - min(point[0] for point in all_points)
+        height = max(point[1] for point in all_points) - min(point[1] for point in all_points)
+
+    pad = 20
     svg_width = max(1, (width + pad * 2) * 0.5)
     svg_height = max(1, (height + pad * 2) * 0.5)
 
@@ -296,9 +310,15 @@ def makesvg(lines):
     )
 
     for stroke in strokes:
-        points = stroke.to_string(min_x, min_y, pad)
-        color = f"rgba(0, 0, 0, {stroke.pigment})"
-        out += '<polyline points="'+points+'" stroke="'+color+'" stroke-width="2" fill="none" />\n'
+        if isinstance(stroke, LoadBrush):
+            continue
+        if hasattr(stroke, 'to_string'):
+            points = stroke.to_string(0, 0, pad)
+            color = f"rgba(0, 0, 0, {getattr(stroke, 'pigment', 0.0)})"
+            out += '<polyline points="'+points+'" stroke="'+color+'" stroke-width="2" fill="none" />\n'
+        else:
+            points = stroke
+            out += '<polyline points="'+','.join(f"{x},{y}" for x, y in points)+'" stroke="rgba(0, 0, 0, 1)" stroke-width="2" fill="none" />\n'
     out += '</svg>'
     return out
 
@@ -347,16 +367,25 @@ if __name__ == "__main__":
     contour_simplify = args.contour_simplify
     show_bitmap = args.show_bitmap
     no_cv = args.no_cv
-    lines = sketch(args.input_path)
+    lines, max_x, max_y = sketch(args.input_path)
 
     import json
     filename = 'output'
     with open("output.json", 'w') as f:
         f.write('{\n\t"stage": 0,\n')
         f.write(f'\t"name": "{filename}",\n')
-        f.write('\t"lines": [\n')
+        f.write(f'\t"image_size": [{max_x}, {max_y}],\n')
+        f.write('\t"strokes": [\n')
         for i, line in enumerate(lines):
-            payload = _as_line(line).to_dict()
+            if isinstance(line, LoadBrush):
+                payload = {
+                    "type": "LoadBrush",
+                    "color": list(line.color),
+                    "pigment": round(float(line.pigment), 4),
+                    "deep_clean": line.deep_clean,
+                }
+            else:
+                payload = _as_line(line).to_dict()
             line_str = json.dumps(payload)
             f.write("\t\t" + line_str)
             if i == len(lines) -1:

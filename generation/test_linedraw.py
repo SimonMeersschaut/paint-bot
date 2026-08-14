@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from lines import Line
 from linedraw import makesvg, measure_stroke_contour_strength
 from pigment import normalize_stroke_distribution
+from stroke_ordering import sort_strokes
+from datatypes.strokes import LoadBrush
 
 
 def test_makesvg_uses_explicit_svg_viewport():
@@ -73,3 +75,33 @@ def test_measure_stroke_contour_strength_uses_sobel_edge_energy():
 
     assert 0.0 <= value <= 1.0
     assert value > 0.5
+
+
+def test_sort_strokes_batches_by_pigment_and_inserts_load_brush_commands():
+    strokes = [
+        Line(positions=[(0, 0), (1, 0)], pigment=0.05),
+        Line(positions=[(0, 1), (1, 1)], pigment=0.12),
+        Line(positions=[(0, 2), (1, 2)], pigment=0.19),
+        Line(positions=[(0, 3), (1, 3)], pigment=0.25),
+        Line(positions=[(0, 4), (1, 4)], pigment=0.31),
+        Line(positions=[(0, 5), (1, 5)], pigment=0.38),
+        Line(positions=[(0, 6), (1, 6)], pigment=0.46),
+        Line(positions=[(0, 7), (1, 7)], pigment=0.57),
+        Line(positions=[(0, 8), (1, 8)], pigment=0.64),
+        Line(positions=[(0, 9), (1, 9)], pigment=0.72),
+        Line(positions=[(0, 10), (1, 10)], pigment=0.80),
+        Line(positions=[(0, 11), (1, 11)], pigment=0.89),
+    ]
+
+    ordered = sort_strokes(strokes)
+
+    load_indices = [i for i, command in enumerate(ordered) if isinstance(command, LoadBrush)]
+    assert load_indices == [0, 11]
+
+    first_batch = ordered[1:11]
+    second_batch = ordered[12:]
+    assert len(first_batch) == 10
+    assert len(second_batch) == 2
+    assert all(getattr(stroke, 'pigment', 0.0) <= max(getattr(s, 'pigment', 0.0) for s in first_batch) for stroke in first_batch)
+    assert ordered[0].pigment == pytest.approx(sum(stroke.pigment for stroke in first_batch) / len(first_batch))
+    assert ordered[11].pigment == pytest.approx(sum(stroke.pigment for stroke in second_batch) / len(second_batch))

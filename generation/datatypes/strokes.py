@@ -104,10 +104,10 @@ class Command(ABC):
 
 @dataclass
 class StrokePath(Command):
-    # color: tuple[int, int, int] # (r, g, b)
+    color: tuple[int, int, int] # (r, g, b)
     path: list[tuple[int, int]]  # (x, y)
     pigment: float # 1 = pure color, 0 = white
-    # hex_color: str
+    hex_color: str
     brushDiameter: int
     # all dimensions (if not specified otherwise) are pixels
 
@@ -124,10 +124,10 @@ class StrokePath(Command):
     def load_from_json(data: dict) -> object:
         pigment = data.get("pigment", 1)
         return StrokePath(
-            # color = data["color"],
+            color = data["color"],
             path = data["path"],
             pigment = pigment,
-            # hex_color=data["hex_color"],
+            hex_color=data["hex_color"],
             brushDiameter=2,  #data["brushDiameter"], #FIXME
         )
 
