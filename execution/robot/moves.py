@@ -205,6 +205,6 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
 
     # Step E: Swoop up! Fluidly exit the canvas by moving to leadout and up_height simultaneously
     printer.move_to(x=leadout_x, y=leadout_y, z=canvas_up_height, feed_rate=FEED_RATE_TRAVEL)
-    printer.move_to(z=canvas_up_height, feed_rate=FEED_RATE_PAINT)
+    printer.move_and_wait(z=canvas_up_height, feed_rate=FEED_RATE_PAINT)
 
     print(f"--- Stroke {index} execution complete ---")

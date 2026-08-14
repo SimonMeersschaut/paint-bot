@@ -95,8 +95,8 @@ class SerialPrinter(Printer):
         
         return "\n".join(response_lines)
 
-    def move_and_wait(self, x, y, z):
-        self.move_to(x, y, z)
+    def move_and_wait(self, *args, **kwargs):
+        self.move_to(*args, **kwargs)
         self.send_command("M400") # wait untill completion
 
     def set_fan(self, mode: bool):

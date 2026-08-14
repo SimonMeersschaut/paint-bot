@@ -65,7 +65,7 @@ WebApp.set_expected_svg(expected_svg, total_strokes=len(my_stroke_sequence.strok
 
 printer.move_to(z=my_calibration.safe_height)
 
-START_INDEX = 0
+START_INDEX = 123
 
 # expected_frame = get_stroke_frame(my_stroke_sequence, START_INDEX, do_annotate=False)
 # WebApp.set_feed_image(FeedType.expected_feed, cv2.flip(expected_frame, 0))
@@ -75,10 +75,10 @@ if START_INDEX != 0:
 
 for index in range(START_INDEX, len(my_stroke_sequence.strokes)):   # continue where ended
     WebApp.set_progress(index/len(my_stroke_sequence.strokes))
+    WebApp.set_current_stroke_index(index)
     print(f"Executing index: {index}")
     command = my_stroke_sequence.strokes[index]
     if type(command) == StrokePath:
-        WebApp.set_current_stroke_index(index)
         execute_stroke(
             printer=printer,
             robot_calibration=my_calibration,
