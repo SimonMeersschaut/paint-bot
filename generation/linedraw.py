@@ -4,6 +4,7 @@ import argparse
 
 from pigment import calculate_pigment
 from PIL import Image, ImageDraw, ImageOps
+from visualisation import rotate_if_vertical
 
 from filters import *
 from stroke_ordering import sort_strokes
@@ -231,37 +232,95 @@ def measure_stroke_contour_strength(image, stroke):
     return max(0.0, min(1.0, sum(samples) / len(samples)))
 
 
+def _resize_preserve_short_edge(img, target_short_edge):
+    w, h = img.size
+    target = max(1, int(target_short_edge))
+
+    # Keep sampling density consistent across portrait/landscape orientations.
+    if w <= h:
+        new_w = target
+        new_h = max(1, int(round((h / w) * target)))
+    else:
+        new_h = target
+        new_w = max(1, int(round((w / h) * target)))
+
+    return img.resize((new_w, new_h))
+
+
+def _rotate_strokes_90cw(strokes):
+    drawable = [stroke for stroke in strokes if stroke is not None and not isinstance(stroke, LoadBrush) and stroke.positions]
+    if not drawable:
+        return strokes
+
+    all_points = [p for stroke in drawable for p in stroke.positions]
+    min_x = min(p[0] for p in all_points)
+    min_y = min(p[1] for p in all_points)
+    max_x = max(p[0] for p in all_points)
+    max_y = max(p[1] for p in all_points)
+
+    rotated = []
+    x_span = max_x - min_x
+    y_span = max_y - min_y
+    for stroke in strokes:
+        if stroke is None or isinstance(stroke, LoadBrush):
+            rotated.append(stroke)
+            continue
+
+        new_points = []
+        for x, y in stroke.positions:
+            x_rel = x - min_x
+            y_rel = y - min_y
+            new_x = (y_span - y_rel) + min_x
+            new_y = x_rel + min_y
+            new_points.append((new_x, new_y))
+        rotated.append(stroke.copy_with_points(new_points))
+
+    return rotated
+
+
 def sketch(path):
-    IM = None
+    img = None
     possible = [path,"images/"+path,"images/"+path+".jpg","images/"+path+".png","images/"+path+".tif"]
     for p in possible:
         try:
-            IM = Image.open(p)
+            img = Image.open(p)
             break
         except FileNotFoundError:
-            print("The Input File wasn't found. Check Path")
-            exit(0)
-            pass
-    w,h = IM.size
+            continue
 
-    IM = IM.convert("L")
-    IM=ImageOps.autocontrast(IM,10)
+    if img is None:
+        print("The Input File wasn't found. Check Path")
+        exit(0)
+
+    # Respect EXIF orientation before any portrait/landscape logic.
+    img = ImageOps.exif_transpose(img)
+    should_rotate_output = img.height > img.width
+    w, h = img.size
+
+    img = img.convert("L")
+    img=ImageOps.autocontrast(img,10)
 
     raw_lines = []
     if draw_contours:
-        raw_lines += getcontours(IM.resize((resolution//contour_simplify,resolution//contour_simplify*h//w)),contour_simplify)
+        contour_img = _resize_preserve_short_edge(img, resolution // contour_simplify)
+        raw_lines += getcontours(contour_img, contour_simplify)
     if draw_hatch:
-        raw_lines += hatch(IM.resize((resolution//hatch_size,resolution//hatch_size*h//w)),hatch_size)
+        hatch_img = _resize_preserve_short_edge(img, resolution // hatch_size)
+        raw_lines += hatch(hatch_img, hatch_size)
 
     lines = [_as_line(stroke) for stroke in raw_lines]
     for stroke in lines:
-        avg_darkness = sum(IM.getpixel((int(p[0] / max(1, len(stroke.positions))), int(p[1]))) for p in stroke.positions[:min(10, len(stroke.positions))]) / max(1, min(10, len(stroke.positions))) / 255.0
-        contour_strength = measure_stroke_contour_strength(IM, stroke)
-        calculate_pigment(stroke, avg_darkness, contour_strength, image=IM)
+        avg_darkness = sum(img.getpixel((int(p[0] / max(1, len(stroke.positions))), int(p[1]))) for p in stroke.positions[:min(10, len(stroke.positions))]) / max(1, min(10, len(stroke.positions))) / 255.0
+        contour_strength = measure_stroke_contour_strength(img, stroke)
+        calculate_pigment(stroke, avg_darkness, contour_strength, image=img)
 
     lines = sort_strokes(lines)
+    if should_rotate_output:
+        lines = _rotate_strokes_90cw(lines)
+
     if show_bitmap:
-        disp = Image.new("RGB",(resolution,resolution*h//w),(255,255,255))
+        disp_size = _resize_preserve_short_edge(img, resolution).size
+        disp = Image.new("RGB", disp_size, (255,255,255))
         draw = ImageDraw.Draw(disp)
         for stroke in lines:
             if isinstance(stroke, LoadBrush):
@@ -281,24 +340,31 @@ def sketch(path):
     height = max_y - min_y
 
     f = open(export_path,'w')
-    f.write(makesvg(strokes, width, height))
+    f.write(makesvg(strokes, width, height, min_x=min_x, min_y=min_y))
     f.close()
     print(len(lines),"strokes.")
     print("done.")
 
     return lines, max_x, max_y
 
-def makesvg(strokes, width=None, height=None):
+def makesvg(strokes, width=None, height=None, min_x=None, min_y=None):
+    STROKE_WIDTH = 6
     print("generating svg file...")
     if not strokes:
         return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
 
-    if width is None or height is None:
+    if min_x is None or min_y is None or width is None or height is None:
         all_points = [point for stroke in strokes for point in getattr(stroke, 'positions', [])]
         if not all_points:
             return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
-        width = max(point[0] for point in all_points) - min(point[0] for point in all_points)
-        height = max(point[1] for point in all_points) - min(point[1] for point in all_points)
+        if min_x is None:
+            min_x = min(point[0] for point in all_points)
+        if min_y is None:
+            min_y = min(point[1] for point in all_points)
+        if width is None:
+            width = max(point[0] for point in all_points) - min_x
+        if height is None:
+            height = max(point[1] for point in all_points) - min_y
 
     pad = 20
     svg_width = max(1, (width + pad * 2) * 0.5)
@@ -313,12 +379,12 @@ def makesvg(strokes, width=None, height=None):
         if isinstance(stroke, LoadBrush):
             continue
         if hasattr(stroke, 'to_string'):
-            points = stroke.to_string(0, 0, pad)
+            points = stroke.to_string(min_x, min_y, pad)
             color = f"rgba(0, 0, 0, {getattr(stroke, 'pigment', 0.0)})"
-            out += '<polyline points="'+points+'" stroke="'+color+'" stroke-width="2" fill="none" />\n'
+            out += '<polyline points="'+points+'" stroke="'+color+f'" stroke-width="{STROKE_WIDTH}" fill="none" />\n'
         else:
             points = stroke
-            out += '<polyline points="'+','.join(f"{x},{y}" for x, y in points)+'" stroke="rgba(0, 0, 0, 1)" stroke-width="2" fill="none" />\n'
+            out += '<polyline points="'+','.join(f"{x},{y}" for x, y in points)+f'" stroke="rgba(0, 0, 0, 1)" stroke-width="{STROKE_WIDTH}" fill="none" />\n'
     out += '</svg>'
     return out
 

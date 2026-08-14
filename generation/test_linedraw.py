@@ -6,8 +6,10 @@ import pytest
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "execution"))
 
 from lines import Line
+from datatypes.strokes import StrokeSequence, StrokePath
 from linedraw import makesvg, measure_stroke_contour_strength
 from pigment import normalize_stroke_distribution
 from stroke_ordering import sort_strokes
@@ -75,6 +77,18 @@ def test_measure_stroke_contour_strength_uses_sobel_edge_energy():
 
     assert 0.0 <= value <= 1.0
     assert value > 0.5
+
+
+def test_stroke_sequence_mirror_y_axis_flips_x_coordinates_in_place():
+    sequence = StrokeSequence(image_size=(10, 20))
+    sequence.strokes = [
+        StrokePath(path=[(0, 0), (2, 3), (9, 12)], pigment=1.0, brushDiameter=2)
+    ]
+
+    sequence.mirror_y_axis()
+
+    assert sequence.strokes[0].path == [(9, 0), (7, 3), (0, 12)]
+    assert sequence.image_size == (10, 20)
 
 
 def test_sort_strokes_batches_by_pigment_and_inserts_load_brush_commands():

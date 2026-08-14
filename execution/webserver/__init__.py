@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 from threading import Thread
 
-from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, url_for
 
 
 class FeedType(Enum):
@@ -23,6 +23,11 @@ class WebApp:
     _feeds = [FeedType.camera_feed, FeedType.expected_feed]
     _images = {feed_type: None for feed_type in FeedType}
     _image_versions = {feed_type: 0 for feed_type in FeedType}
+
+    _expected_svg = ""
+    _expected_svg_version = 0
+    _current_stroke_index = -1
+    _total_strokes = 0
 
     @classmethod
     def _grid(cls):
@@ -131,6 +136,24 @@ class WebApp:
         def progress_route():
             return jsonify(progress=cls._progress)
 
+        @cls.app.route("/expected-state", methods=["GET"])
+        def expected_state_route():
+            return jsonify(
+                current_stroke_index=cls._current_stroke_index,
+                total_strokes=cls._total_strokes,
+                svg_version=cls._expected_svg_version,
+                has_svg=bool(cls._expected_svg),
+            )
+
+        @cls.app.route("/expected-svg", methods=["GET"])
+        def expected_svg_route():
+            if not cls._expected_svg:
+                abort(404)
+            response = Response(cls._expected_svg, mimetype="image/svg+xml")
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            return response
+
     @classmethod
     def _run(cls):
         cls.app.run(host="0.0.0.0", port=5000, threaded=True, use_reloader=False)
@@ -162,3 +185,13 @@ class WebApp:
     def set_progress(cls, progress: float):
         progress_value = float(progress)
         cls._progress = max(0.0, min(1.0, progress_value))
+
+    @classmethod
+    def set_expected_svg(cls, svg_text: str, total_strokes: int):
+        cls._expected_svg = svg_text or ""
+        cls._total_strokes = max(0, int(total_strokes))
+        cls._expected_svg_version += 1
+
+    @classmethod
+    def set_current_stroke_index(cls, index: int):
+        cls._current_stroke_index = int(index)

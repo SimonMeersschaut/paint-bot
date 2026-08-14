@@ -130,8 +130,9 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
     down_height = robot_calibration.bottom_left[2]
     
     # Configurable extension distance for the fluid motion (in mm)
-    LEAD_IN_DISTANCE = 5.0 
-    LEAD_OUT_DISTANCE = 2.0
+    # very minimal lead
+    LEAD_IN_DISTANCE = 1.0 
+    LEAD_OUT_DISTANCE = 1.0
     
     # 1. Bounds check to ensure the index exists
     if index < 0 or index >= len(stroke_sequence.strokes):

@@ -107,6 +107,25 @@
             display: block;
         }
 
+        .expected-feed {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+
+        .expected-feed svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .expected-feed path[data-command-index] {
+            transition: stroke 0.12s linear, stroke-opacity 0.12s linear;
+        }
+
         @media (max-width: 700px) {
             .grid {
                 grid-template-columns: 1fr;
@@ -151,7 +170,9 @@
             </form>
 
             <div class="feed-preview">
-                {% if cell.has_image %}
+                {% if cell.feed.name == 'expected_feed' %}
+                <div class="expected-feed" data-expected-feed data-slot="{{ cell.slot }}">Loading expected preview...</div>
+                {% elif cell.has_image %}
                 <img
                     data-slot="{{ cell.slot }}"
                     data-src="{{ url_for('feed_image_route', feed_name=cell.feed.name) }}"
@@ -169,9 +190,49 @@
     <script>
         const refreshInterval = 10; // seconds
         const progressUrl = "{{ url_for('progress_route') }}";
+        const expectedStateUrl = "{{ url_for('expected_state_route') }}";
+        const expectedSvgUrl = "{{ url_for('expected_svg_route') }}";
         const progressFill = document.querySelector("[data-progress-fill]");
         const progressTrack = document.querySelector(".progress-track");
         const progressValueLabel = document.querySelector(".progress-label span");
+        let expectedSvgVersion = -1;
+
+        function paintExpectedStrokes(currentStrokeIndex) {
+            document.querySelectorAll("[data-expected-feed] svg path[data-command-index]").forEach((pathElement) => {
+                const pathIndex = Number(pathElement.dataset.commandIndex);
+                if (Number.isNaN(pathIndex)) {
+                    return;
+                }
+
+                if (pathIndex < currentStrokeIndex) {
+                    pathElement.style.stroke = "#111111";
+                    pathElement.style.strokeOpacity = "1";
+                    return;
+                }
+
+                if (pathIndex === currentStrokeIndex) {
+                    pathElement.style.stroke = "#d32f2f";
+                    pathElement.style.strokeOpacity = "1";
+                    return;
+                }
+
+                pathElement.style.stroke = "#a7adb4";
+                pathElement.style.strokeOpacity = "0.35";
+            });
+        }
+
+        function updateExpectedSvgInSlots(svgText) {
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+            const svgRoot = svgDoc.documentElement;
+            if (!svgRoot || svgRoot.nodeName.toLowerCase() !== "svg") {
+                return;
+            }
+
+            document.querySelectorAll("[data-expected-feed]").forEach((container) => {
+                container.replaceChildren(svgRoot.cloneNode(true));
+            });
+        }
 
         function setProgress(progress) {
             const percentage = Math.max(0, Math.min(100, progress * 100));
@@ -196,8 +257,41 @@
             }
         }
 
+        async function refreshExpectedState() {
+            try {
+                const stateResponse = await fetch(expectedStateUrl, { cache: "no-store" });
+                if (!stateResponse.ok) {
+                    return;
+                }
+
+                const state = await stateResponse.json();
+                if (!state.has_svg) {
+                    return;
+                }
+
+                if (state.svg_version !== expectedSvgVersion) {
+                    const svgResponse = await fetch(expectedSvgUrl + "?v=" + Date.now(), { cache: "no-store" });
+                    if (!svgResponse.ok) {
+                        return;
+                    }
+
+                    const svgText = await svgResponse.text();
+                    updateExpectedSvgInSlots(svgText);
+                    expectedSvgVersion = state.svg_version;
+                }
+
+                if (typeof state.current_stroke_index === "number") {
+                    paintExpectedStrokes(state.current_stroke_index);
+                }
+            } catch (error) {
+                // Ignore transient connection errors and try again on the next tick.
+            }
+        }
+
         refreshProgress();
+        refreshExpectedState();
         setInterval(refreshProgress, refreshInterval * 1000);
+        setInterval(refreshExpectedState, 1000);
 
         setInterval(() => {
             document.querySelectorAll("img[data-slot]").forEach((img) => {

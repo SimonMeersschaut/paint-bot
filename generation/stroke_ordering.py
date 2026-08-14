@@ -2,7 +2,7 @@
 from datatypes.strokes import LoadBrush
 
 
-def sort_strokes(strokes, batch_size=10):
+def sort_strokes(strokes, batch_size=30):
     """Group strokes into similar-pigment batches and prefix each batch with a brush-load instruction."""
     if not strokes:
         return []
