@@ -10,7 +10,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "execution"))
 
 from lines import Line
 from datatypes.strokes import StrokeSequence, StrokePath
-from linedraw import makesvg, measure_stroke_contour_strength, resolve_line_settings, filter_short_lines
+from linedraw import (
+    makesvg,
+    measure_stroke_contour_strength,
+    resolve_line_settings,
+    filter_short_lines,
+    estimate_depth_map,
+    _detect_background_stroke,
+)
 from pigment import normalize_stroke_distribution
 from stroke_ordering import sort_strokes
 from datatypes.strokes import LoadBrush
@@ -137,3 +144,37 @@ def test_sort_strokes_batches_by_pigment_and_inserts_load_brush_commands():
     assert all(getattr(stroke, 'pigment', 0.0) <= max(getattr(s, 'pigment', 0.0) for s in first_batch) for stroke in first_batch)
     assert ordered[0].pigment == pytest.approx(sum(stroke.pigment for stroke in first_batch) / len(first_batch))
     assert ordered[11].pigment == pytest.approx(sum(stroke.pigment for stroke in second_batch) / len(second_batch))
+
+
+def test_background_strokes_are_flagged_and_rendered_thicker():
+    background = Line(positions=[(0, 0), (10, 0)], pigment=0.20, darkness=0.18, background=True, brushDiameter=18)
+    foreground = Line(positions=[(0, 5), (10, 5)], pigment=0.80, darkness=0.82, background=False, brushDiameter=6)
+
+    payload = background.to_dict()
+    assert payload['background'] is True
+    assert payload['brushDiameter'] == 18
+
+    svg = makesvg([background, foreground], width=10, height=5, min_x=0, min_y=0)
+    assert 'stroke-width="18"' in svg
+    assert 'stroke-width="6"' in svg
+
+
+def test_estimate_depth_map_marks_edges_as_foreground():
+    image = Image.new('L', (100, 100), 255)
+    for y in range(100):
+        image.putpixel((50, y), 0)
+
+    depth_map = estimate_depth_map(image)
+    edge_depth = depth_map.getpixel((50, 50))
+    background_depth = depth_map.getpixel((10, 10))
+
+    assert edge_depth > background_depth
+
+
+def test_detect_background_stroke_uses_configurable_depth_threshold():
+    depth_map = Image.new('L', (10, 10), 0)
+    depth_map.putdata([200] * 100)
+    stroke = Line(positions=[(1, 1), (8, 8)])
+
+    assert _detect_background_stroke(depth_map, stroke, depth_threshold=0.2) is False
+    assert _detect_background_stroke(depth_map, stroke, depth_threshold=0.9) is True

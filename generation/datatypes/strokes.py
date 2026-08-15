@@ -109,6 +109,7 @@ class StrokePath(Command):
     pigment: float # 1 = pure color, 0 = white
     hex_color: str
     brushDiameter: int
+    background: bool = False
     # all dimensions (if not specified otherwise) are pixels
 
     def to_json(self):
@@ -118,7 +119,8 @@ class StrokePath(Command):
             "hex_color": self.hex_color,
             "pigment": round(float(self.pigment), 4),
             "path": self.path,
-            # "brushDiameter": float(self.brushDiameter)
+            "brushDiameter": int(self.brushDiameter),
+            "background": bool(self.background),
         })
 
     def load_from_json(data: dict) -> object:
@@ -128,7 +130,8 @@ class StrokePath(Command):
             path = data["path"],
             pigment = pigment,
             hex_color=data["hex_color"],
-            brushDiameter=2,  #data["brushDiameter"], #FIXME
+            brushDiameter=int(data.get("brushDiameter", 2)),
+            background=bool(data.get("background", False)),
         )
 
 @dataclass
