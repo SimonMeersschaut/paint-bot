@@ -173,6 +173,51 @@ def hatch(IM,sc=16):
     return lines
 
 
+def resolve_line_settings(density=1.0, hatch_size=hatch_size, contour_simplify=contour_simplify):
+    if density is None or density <= 0:
+        density = 1.0
+
+    adjusted_hatch = max(4, int(round(hatch_size / density)))
+    adjusted_contour = max(1, int(round(contour_simplify / density)))
+
+    return {
+        'density': density,
+        'hatch_size': adjusted_hatch,
+        'contour_simplify': adjusted_contour,
+    }
+
+
+def _stroke_length(points):
+    if len(points) < 2:
+        return 0.0
+    total = 0.0
+    for i in range(1, len(points)):
+        x0, y0 = points[i - 1]
+        x1, y1 = points[i]
+        total += math.hypot(x1 - x0, y1 - y0)
+    return total
+
+
+def filter_short_lines(strokes, min_length_pixels=0):
+    if min_length_pixels is None or min_length_pixels <= 0:
+        return list(strokes)
+
+    filtered = []
+    for stroke in strokes:
+        if stroke is None:
+            continue
+        if isinstance(stroke, LoadBrush):
+            filtered.append(stroke)
+            continue
+        if isinstance(stroke, Line):
+            if _stroke_length(stroke.positions) >= min_length_pixels:
+                filtered.append(stroke)
+        else:
+            line = _as_line(stroke)
+            if line is not None and _stroke_length(line.positions) >= min_length_pixels:
+                filtered.append(line)
+    return filtered
+
 
 def _as_line(stroke):
     if isinstance(stroke, LoadBrush):
@@ -278,7 +323,7 @@ def _rotate_strokes_90cw(strokes):
     return rotated
 
 
-def sketch(path):
+def sketch(path, density=1.0, min_line_length=0):
     img = None
     possible = [path,"images/"+path,"images/"+path+".jpg","images/"+path+".png","images/"+path+".tif"]
     for p in possible:
@@ -292,31 +337,37 @@ def sketch(path):
         print("The Input File wasn't found. Check Path")
         exit(0)
 
+    settings = resolve_line_settings(density=density, hatch_size=hatch_size, contour_simplify=contour_simplify)
+    effective_hatch_size = settings['hatch_size']
+    effective_contour_simplify = settings['contour_simplify']
+
     # Respect EXIF orientation before any portrait/landscape logic.
-    img = ImageOps.exif_transpose(img)
-    should_rotate_output = img.height > img.width
-    w, h = img.size
+    # img = ImageOps.exif_transpose(img)
+    # should_rotate_output = img.height > img.width
+    # w, h = img.size
 
     img = img.convert("L")
     img=ImageOps.autocontrast(img,10)
 
     raw_lines = []
     if draw_contours:
-        contour_img = _resize_preserve_short_edge(img, resolution // contour_simplify)
-        raw_lines += getcontours(contour_img, contour_simplify)
+        contour_img = _resize_preserve_short_edge(img, resolution // effective_contour_simplify)
+        raw_lines += getcontours(contour_img, effective_contour_simplify)
     if draw_hatch:
-        hatch_img = _resize_preserve_short_edge(img, resolution // hatch_size)
-        raw_lines += hatch(hatch_img, hatch_size)
+        hatch_img = _resize_preserve_short_edge(img, resolution // effective_hatch_size)
+        raw_lines += hatch(hatch_img, effective_hatch_size)
 
     lines = [_as_line(stroke) for stroke in raw_lines]
+    lines = [line for line in lines if line is not None]
+    lines = filter_short_lines(lines, min_line_length)
     for stroke in lines:
         avg_darkness = sum(img.getpixel((int(p[0] / max(1, len(stroke.positions))), int(p[1]))) for p in stroke.positions[:min(10, len(stroke.positions))]) / max(1, min(10, len(stroke.positions))) / 255.0
         contour_strength = measure_stroke_contour_strength(img, stroke)
         calculate_pigment(stroke, avg_darkness, contour_strength, image=img)
 
     lines = sort_strokes(lines)
-    if should_rotate_output:
-        lines = _rotate_strokes_90cw(lines)
+    # if should_rotate_output:
+    #     lines = _rotate_strokes_90cw(lines)
 
     if show_bitmap:
         disp_size = _resize_preserve_short_edge(img, resolution).size
@@ -348,7 +399,7 @@ def sketch(path):
     return lines, max_x, max_y
 
 def makesvg(strokes, width=None, height=None, min_x=None, min_y=None):
-    STROKE_WIDTH = 6
+    STROKE_WIDTH = 10
     print("generating svg file...")
     if not strokes:
         return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
@@ -423,6 +474,12 @@ if __name__ == "__main__":
     parser.add_argument('--contour_simplify',dest='contour_simplify',
         default=contour_simplify,action='store',nargs='?',type=int,
         help='Level of contour simplification. eg. 1, 2, 3')
+    parser.add_argument('--density',dest='density',
+        default=1.0,action='store',nargs='?',type=float,
+        help='Line density multiplier. Values above 1.0 create more lines; values below 1.0 reduce them.')
+    parser.add_argument('--min_line_length',dest='min_line_length',
+        default=0,action='store',nargs='?',type=float,
+        help='Remove any stroke shorter than this many pixels.')
 
     args = parser.parse_args()
     
@@ -433,7 +490,11 @@ if __name__ == "__main__":
     contour_simplify = args.contour_simplify
     show_bitmap = args.show_bitmap
     no_cv = args.no_cv
-    lines, max_x, max_y = sketch(args.input_path)
+    lines, max_x, max_y = sketch(
+        args.input_path,
+        density=args.density,
+        min_line_length=args.min_line_length
+    )
 
     import json
     filename = 'output'
