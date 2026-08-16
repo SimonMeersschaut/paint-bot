@@ -7,6 +7,8 @@ class Line:
     pigment: float = 0.0
     darkness: float = 0.0
     contour_strength: float = 0.0
+    background: bool = False
+    brushDiameter: int = 2
 
     def to_string(self, min_x, min_y, pad):
         return ",".join([
@@ -17,10 +19,13 @@ class Line:
     def to_dict(self):
         payload = {
             "type": "StrokePath",
+            "points": [list(point) for point in self.positions],
+            "path": [list(point) for point in self.positions],
             "pigment": round(self.pigment, 3),
             "darkness": round(float(self.darkness), 3),
             "contour_strength": round(float(self.contour_strength), 3),
-            "path": [list(point) for point in self.positions],
+            "background": bool(self.background),
+            "brushDiameter": int(self.brushDiameter),
         }
         return payload
 
@@ -34,4 +39,6 @@ class Line:
             pigment=self.pigment,
             darkness=self.darkness,
             contour_strength=self.contour_strength,
+            background=self.background,
+            brushDiameter=self.brushDiameter,
         )

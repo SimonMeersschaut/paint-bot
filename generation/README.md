@@ -38,6 +38,10 @@ optional arguments:
                         Patch size of hatches. eg. 8, 16, 32
   --contour_simplify [CONTOUR_SIMPLIFY]
                         Level of contour simplification. eg. 1, 2, 3
+  --density
+                        Line density multiplier. Values above 1.0 create more lines; values below 1.0 reduce them.
+  --min_line_length
+                        Remove any stroke shorter than this many pixels.
 ```
 Python:
 

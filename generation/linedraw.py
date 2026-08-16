@@ -173,6 +173,51 @@ def hatch(IM,sc=16):
     return lines
 
 
+def resolve_line_settings(density=1.0, hatch_size=hatch_size, contour_simplify=contour_simplify):
+    if density is None or density <= 0:
+        density = 1.0
+
+    adjusted_hatch = max(4, int(round(hatch_size / density)))
+    adjusted_contour = max(1, int(round(contour_simplify / density)))
+
+    return {
+        'density': density,
+        'hatch_size': adjusted_hatch,
+        'contour_simplify': adjusted_contour,
+    }
+
+
+def _stroke_length(points):
+    if len(points) < 2:
+        return 0.0
+    total = 0.0
+    for i in range(1, len(points)):
+        x0, y0 = points[i - 1]
+        x1, y1 = points[i]
+        total += math.hypot(x1 - x0, y1 - y0)
+    return total
+
+
+def filter_short_lines(strokes, min_length_pixels=0):
+    if min_length_pixels is None or min_length_pixels <= 0:
+        return list(strokes)
+
+    filtered = []
+    for stroke in strokes:
+        if stroke is None:
+            continue
+        if isinstance(stroke, LoadBrush):
+            filtered.append(stroke)
+            continue
+        if isinstance(stroke, Line):
+            if _stroke_length(stroke.positions) >= min_length_pixels:
+                filtered.append(stroke)
+        else:
+            line = _as_line(stroke)
+            if line is not None and _stroke_length(line.positions) >= min_length_pixels:
+                filtered.append(line)
+    return filtered
+
 
 def _as_line(stroke):
     if isinstance(stroke, LoadBrush):
@@ -247,6 +292,94 @@ def _resize_preserve_short_edge(img, target_short_edge):
     return img.resize((new_w, new_h))
 
 
+def _normalize_depth(values):
+    if not values:
+        return []
+    minimum = min(values)
+    maximum = max(values)
+    if maximum == minimum:
+        return [0.0 for _ in values]
+    return [(value - minimum) / (maximum - minimum) for value in values]
+
+
+def estimate_depth_map(image):
+    """Build a cheap mono-depth map from local contrast and edge structure.
+
+    Nearer objects have stronger local contrast and sharper edges, so their
+    estimated depth is higher. Smooth low-contrast regions are treated as more
+    distant background.
+    """
+    gray = image.convert('L') if image.mode != 'L' else image
+    width, height = gray.size
+
+    if no_cv:
+        pixels = gray.load()
+        depth_values = []
+        for y in range(height):
+            for x in range(width):
+                center = pixels[x, y]
+                neighbors = []
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        nx = max(0, min(width - 1, x + dx))
+                        ny = max(0, min(height - 1, y + dy))
+                        if nx == x and ny == y:
+                            continue
+                        neighbors.append(pixels[nx, ny])
+                if not neighbors:
+                    contrast = 0.0
+                else:
+                    contrast = sum(abs(center - n) for n in neighbors) / len(neighbors)
+                edge = contrast / 255.0
+                depth_values.append(edge)
+        min_value = min(depth_values) if depth_values else 0.0
+        max_value = max(depth_values) if depth_values else 0.0
+        if max_value == min_value:
+            normalized = [0.0 for _ in depth_values]
+        else:
+            normalized = [(value - min_value) / (max_value - min_value) for value in depth_values]
+
+        depth_image = Image.new('L', (width, height))
+        depth_image.putdata([int(round(value * 255.0)) for value in normalized])
+        return depth_image
+
+    arr = np.asarray(gray, dtype=np.float32)
+    blur = cv2.GaussianBlur(arr, (9, 9), 0)
+    grad_x = cv2.Sobel(blur, cv2.CV_32F, 1, 0, ksize=3)
+    grad_y = cv2.Sobel(blur, cv2.CV_32F, 0, 1, ksize=3)
+    edge_energy = cv2.magnitude(grad_x, grad_y)
+    local_contrast = np.abs(arr - blur)
+    depth_map = (edge_energy * 0.7 + local_contrast * 0.3)
+    depth_map = depth_map.astype(np.float32)
+    min_depth = float(np.min(depth_map))
+    max_depth = float(np.max(depth_map))
+    if max_depth == min_depth:
+        depth_map = np.zeros_like(depth_map, dtype=np.float32)
+    else:
+        depth_map = (depth_map - min_depth) / (max_depth - min_depth)
+    return Image.fromarray(np.uint8(np.clip(depth_map, 0.0, 1.0) * 255.0)).convert('L')
+
+
+def _detect_background_stroke(depth_map, stroke, depth_threshold=0.40):
+    if stroke is None or not getattr(stroke, 'positions', None):
+        return False
+
+    threshold = max(0.0, min(1.0, float(depth_threshold)))
+
+    values = []
+    sample_count = min(len(stroke.positions), 16)
+    for x, y in stroke.positions[:sample_count]:
+        px = max(0, min(depth_map.size[0] - 1, int(round(x))))
+        py = max(0, min(depth_map.size[1] - 1, int(round(y))))
+        values.append(depth_map.getpixel((px, py)) / 255.0)
+
+    if not values:
+        return False
+
+    avg_depth = sum(values) / len(values)
+    return avg_depth < threshold
+
+
 def _rotate_strokes_90cw(strokes):
     drawable = [stroke for stroke in strokes if stroke is not None and not isinstance(stroke, LoadBrush) and stroke.positions]
     if not drawable:
@@ -278,7 +411,7 @@ def _rotate_strokes_90cw(strokes):
     return rotated
 
 
-def sketch(path):
+def sketch(path, density=1.0, min_line_length=0, depth_threshold=0.40):
     img = None
     possible = [path,"images/"+path,"images/"+path+".jpg","images/"+path+".png","images/"+path+".tif"]
     for p in possible:
@@ -292,31 +425,40 @@ def sketch(path):
         print("The Input File wasn't found. Check Path")
         exit(0)
 
+    settings = resolve_line_settings(density=density, hatch_size=hatch_size, contour_simplify=contour_simplify)
+    effective_hatch_size = settings['hatch_size']
+    effective_contour_simplify = settings['contour_simplify']
+
     # Respect EXIF orientation before any portrait/landscape logic.
-    img = ImageOps.exif_transpose(img)
-    should_rotate_output = img.height > img.width
-    w, h = img.size
+    # img = ImageOps.exif_transpose(img)
+    # should_rotate_output = img.height > img.width
+    # w, h = img.size
 
     img = img.convert("L")
     img=ImageOps.autocontrast(img,10)
+    depth_map = estimate_depth_map(img)
 
     raw_lines = []
     if draw_contours:
-        contour_img = _resize_preserve_short_edge(img, resolution // contour_simplify)
-        raw_lines += getcontours(contour_img, contour_simplify)
+        contour_img = _resize_preserve_short_edge(img, resolution // effective_contour_simplify)
+        raw_lines += getcontours(contour_img, effective_contour_simplify)
     if draw_hatch:
-        hatch_img = _resize_preserve_short_edge(img, resolution // hatch_size)
-        raw_lines += hatch(hatch_img, hatch_size)
+        hatch_img = _resize_preserve_short_edge(img, resolution // effective_hatch_size)
+        raw_lines += hatch(hatch_img, effective_hatch_size)
 
     lines = [_as_line(stroke) for stroke in raw_lines]
+    lines = [line for line in lines if line is not None]
+    lines = filter_short_lines(lines, min_line_length)
     for stroke in lines:
         avg_darkness = sum(img.getpixel((int(p[0] / max(1, len(stroke.positions))), int(p[1]))) for p in stroke.positions[:min(10, len(stroke.positions))]) / max(1, min(10, len(stroke.positions))) / 255.0
         contour_strength = measure_stroke_contour_strength(img, stroke)
         calculate_pigment(stroke, avg_darkness, contour_strength, image=img)
+        stroke.background = _detect_background_stroke(depth_map, stroke, depth_threshold=depth_threshold)
+        stroke.brushDiameter = 12 if stroke.background else 4
 
     lines = sort_strokes(lines)
-    if should_rotate_output:
-        lines = _rotate_strokes_90cw(lines)
+    # if should_rotate_output:
+    #     lines = _rotate_strokes_90cw(lines)
 
     if show_bitmap:
         disp_size = _resize_preserve_short_edge(img, resolution).size
@@ -348,7 +490,7 @@ def sketch(path):
     return lines, max_x, max_y
 
 def makesvg(strokes, width=None, height=None, min_x=None, min_y=None):
-    STROKE_WIDTH = 6
+    STROKE_WIDTH = 10
     print("generating svg file...")
     if not strokes:
         return '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0" viewBox="0 0 0 0"></svg>'
@@ -378,13 +520,18 @@ def makesvg(strokes, width=None, height=None, min_x=None, min_y=None):
     for stroke in strokes:
         if isinstance(stroke, LoadBrush):
             continue
+
+        stroke_width = getattr(stroke, 'brushDiameter', STROKE_WIDTH)
+        if hasattr(stroke, 'background') and stroke.background:
+            stroke_width = max(stroke_width, 12)
+
         if hasattr(stroke, 'to_string'):
             points = stroke.to_string(min_x, min_y, pad)
             color = f"rgba(0, 0, 0, {getattr(stroke, 'pigment', 0.0)})"
-            out += '<polyline points="'+points+'" stroke="'+color+f'" stroke-width="{STROKE_WIDTH}" fill="none" />\n'
+            out += '<polyline points="'+points+'" stroke="'+color+f'" stroke-width="{stroke_width}" fill="none" />\n'
         else:
             points = stroke
-            out += '<polyline points="'+','.join(f"{x},{y}" for x, y in points)+f'" stroke="rgba(0, 0, 0, 1)" stroke-width="{STROKE_WIDTH}" fill="none" />\n'
+            out += '<polyline points="'+','.join(f"{x},{y}" for x, y in points)+f'" stroke="rgba(0, 0, 0, 1)" stroke-width="{stroke_width}" fill="none" />\n'
     out += '</svg>'
     return out
 
@@ -423,6 +570,15 @@ if __name__ == "__main__":
     parser.add_argument('--contour_simplify',dest='contour_simplify',
         default=contour_simplify,action='store',nargs='?',type=int,
         help='Level of contour simplification. eg. 1, 2, 3')
+    parser.add_argument('--density',dest='density',
+        default=1.0,action='store',nargs='?',type=float,
+        help='Line density multiplier. Values above 1.0 create more lines; values below 1.0 reduce them.')
+    parser.add_argument('--min_line_length',dest='min_line_length',
+        default=0,action='store',nargs='?',type=float,
+        help='Remove any stroke shorter than this many pixels.')
+    parser.add_argument('--depth_threshold',dest='depth_threshold',
+        default=0.40,action='store',nargs='?',type=float,
+        help='Depth cutoff used to classify background strokes. Lower values make more of the image background; higher values make it stricter.')
 
     args = parser.parse_args()
     
@@ -433,7 +589,12 @@ if __name__ == "__main__":
     contour_simplify = args.contour_simplify
     show_bitmap = args.show_bitmap
     no_cv = args.no_cv
-    lines, max_x, max_y = sketch(args.input_path)
+    lines, max_x, max_y = sketch(
+        args.input_path,
+        density=args.density,
+        min_line_length=args.min_line_length,
+        depth_threshold=args.depth_threshold,
+    )
 
     import json
     filename = 'output'
