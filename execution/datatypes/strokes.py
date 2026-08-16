@@ -9,25 +9,6 @@ class StrokeSequence:
         self.strokes = []
         self.image_size = image_size
         self.unit = "mm"
-
-    def mirror_y_axis(self) -> None:
-        """Mirror painted coordinates around the canvas Y axis.
-
-        This flips the drawing in-place within the canvas coordinate frame while
-        leaving the robot's physical setup (water source, palette, etc.) and the
-        canvas placement unchanged.
-        """
-        width, _ = self.image_size
-        if width <= 0:
-            return
-
-        for command in self.strokes:
-            if type(command) == StrokePath:
-                mirrored_path = []
-                for x, y in command.path:
-                    mirrored_x = width - 1 - x
-                    mirrored_path.append((mirrored_x, y))
-                command.path = mirrored_path
     
     def save_to_json(self, filepath: str):
         """Streams the StrokeSequence to a JSON file to prevent high memory usage."""

@@ -149,10 +149,14 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
 
     print(f"--- Executing Natural Stroke {index} | Width: {stroke.brushDiameter} ---")
     
-    # 3. Convert all path points to absolute world coordinates first
+    # 3. Convert all path points to absolute world coordinates first.
+    # Mirror around the canvas Y axis at the very last step before execution,
+    # while leaving the underlying stroke data and robot fixture positions unchanged.
+    canvas_width = robot_calibration.get_canvas_size()[0]
     abs_path = []
     for pt in stroke.path:
-        abs_x = pt[0] + robot_calibration.bottom_left[0]
+        mirrored_x = canvas_width - 1 - pt[0]
+        abs_x = mirrored_x + robot_calibration.bottom_left[0]
         abs_y = pt[1] + robot_calibration.bottom_left[1]
         abs_path.append((abs_x, abs_y))
         
