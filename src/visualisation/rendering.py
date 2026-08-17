@@ -22,16 +22,30 @@ def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
     
     # Initialize the single-entry cache attribute if it doesn't exist
     if not hasattr(get_stroke_frame, "cache"):
-        # Format: {"index": -1, "canvas": None}
-        get_stroke_frame.cache = {"index": -1, "canvas": None}
+        # Format: {"index": -1, "canvas": None, "sequence_id": None, "image_size": None}
+        get_stroke_frame.cache = {
+            "index": -1,
+            "canvas": None,
+            "sequence_id": None,
+            "image_size": None,
+        }
     
     cached_idx = get_stroke_frame.cache["index"]
     cached_canvas = get_stroke_frame.cache["canvas"]
+    cached_sequence_id = get_stroke_frame.cache.get("sequence_id")
+    cached_image_size = get_stroke_frame.cache.get("image_size")
     
     canvas_width, canvas_height = stroke_sequence.image_size
     # Can we resume from the cache? 
     # Must have a valid cache, and the requested index must be forward-facing.
-    if cached_canvas is not None and stroke_index >= cached_idx:
+    cache_matches_sequence = cached_sequence_id == id(stroke_sequence)
+    cache_matches_size = cached_image_size == (canvas_width, canvas_height)
+    if (
+        cached_canvas is not None
+        and stroke_index >= cached_idx
+        and cache_matches_sequence
+        and cache_matches_size
+    ):
         canvas = cached_canvas.copy()
         start_index = cached_idx + 1
     else:
@@ -78,6 +92,8 @@ def get_stroke_frame(stroke_sequence, stroke_index, label="", do_annotate=True):
     # (We save it before UI text/annotations are burned into it)
     get_stroke_frame.cache["index"] = stroke_index
     get_stroke_frame.cache["canvas"] = canvas.copy()
+    get_stroke_frame.cache["sequence_id"] = id(stroke_sequence)
+    get_stroke_frame.cache["image_size"] = (canvas_width, canvas_height)
 
 
     if not do_annotate:

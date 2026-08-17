@@ -10,3 +10,5 @@ Therefore, we implemented a machine learning model which locates face features. 
 We then draw a small black dot at the location of the eyes and mouth.
 
 ## Results
+
+![pose estimation on an elephant](elephant_pose_estimation.png)

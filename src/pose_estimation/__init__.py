@@ -10,9 +10,29 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import pkgutil
+import logging
+import warnings
+import io
+from contextlib import redirect_stdout, redirect_stderr
 
 import numpy as np
 from PIL import Image, ImageDraw
+
+
+# Python 3.12 removed pkgutil.ImpImporter/ImpLoader, but some third-party
+# dependency stacks (via pkg_resources) still reference them at import time.
+if not hasattr(pkgutil, "ImpImporter"):
+	class _CompatImpImporter:  # pragma: no cover - import-time compatibility shim
+		pass
+
+	pkgutil.ImpImporter = _CompatImpImporter  # type: ignore[attr-defined]
+
+if not hasattr(pkgutil, "ImpLoader"):
+	class _CompatImpLoader:  # pragma: no cover - import-time compatibility shim
+		pass
+
+	pkgutil.ImpLoader = _CompatImpLoader  # type: ignore[attr-defined]
 
 
 # Fallback labels for AP-10K-style ordering when keypoint names are not
@@ -49,6 +69,38 @@ _FEATURE_KEYWORDS = {
 }
 
 
+_INFERENCER_CACHE: dict[str, Any] = {}
+
+
+def _configure_mmlab_runtime_quiet_mode() -> None:
+	"""Reduce noisy runtime output from MMLab dependencies in notebooks."""
+
+	warnings.filterwarnings("ignore", category=FutureWarning, module=r"mmdet\\..*")
+	warnings.filterwarnings("ignore", category=FutureWarning, module=r"mmengine\\..*")
+	warnings.filterwarnings(
+		"ignore",
+		message=r"`torch\.cuda\.amp\.autocast\(args\.\.\.\)` is deprecated.*",
+		category=FutureWarning,
+	)
+
+	for logger_name in ("mmengine", "mmcv", "mmdet", "mmpose"):
+		logger = logging.getLogger(logger_name)
+		logger.setLevel(logging.ERROR)
+		logger.propagate = False
+
+
+def _call_quietly(func: Any, /, *args: Any, **kwargs: Any) -> Any:
+	"""Run a callable while suppressing noisy stdout/stderr side output."""
+
+	stdout_buffer = io.StringIO()
+	stderr_buffer = io.StringIO()
+	with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+		with warnings.catch_warnings():
+			warnings.simplefilter("ignore", FutureWarning)
+			warnings.simplefilter("ignore", UserWarning)
+			return func(*args, **kwargs)
+
+
 @dataclass(frozen=True)
 class FeatureBox:
 	"""Axis-aligned bounding box around one feature."""
@@ -73,11 +125,23 @@ class AnimalFaceDetection:
 def _load_mmpose_inferencer() -> Any:
 	try:
 		from mmpose.apis import MMPoseInferencer
-	except ImportError as exc:
+	except (ImportError, AttributeError) as exc:
 		raise ImportError(
-			"MMPose is required for pose_estimation. Install with: pip install mmpose"
+			"MMPose backend import failed. Install compatible deps with: "
+			"pip install mmpose mmdet mmengine \"mmcv<2.2.0\""
 		) from exc
 	return MMPoseInferencer
+
+
+def _get_cached_inferencer(pose2d: str) -> Any:
+	if pose2d in _INFERENCER_CACHE:
+		return _INFERENCER_CACHE[pose2d]
+
+	_configure_mmlab_runtime_quiet_mode()
+	MMPoseInferencer = _load_mmpose_inferencer()
+	inferencer = _call_quietly(MMPoseInferencer, pose2d=pose2d)
+	_INFERENCER_CACHE[pose2d] = inferencer
+	return inferencer
 
 
 def _to_pil_image(image: str | Path | np.ndarray | Image.Image) -> Image.Image:
@@ -196,13 +260,13 @@ def detect_animal_face_features(
 
 	pil_image = _to_pil_image(image)
 	image_size = pil_image.size
+	_configure_mmlab_runtime_quiet_mode()
 
 	if inferencer is None:
-		MMPoseInferencer = _load_mmpose_inferencer()
-		inferencer = MMPoseInferencer(pose2d=pose2d)
+		inferencer = _get_cached_inferencer(pose2d=pose2d)
 
-	result_generator = inferencer(np.array(pil_image), show=False)
-	results = next(result_generator)
+	result_generator = _call_quietly(inferencer, np.array(pil_image), show=False)
+	results = _call_quietly(next, result_generator)
 
 	predictions_groups = results.get("predictions", [])
 	all_instances: list[dict[str, Any]] = []
@@ -318,10 +382,67 @@ def detect_and_draw_animal_face_features(
 	return annotated, detections
 
 
+def append_eye_center_dot_strokes(
+	stroke_sequence: Any,
+	detections: list[AnimalFaceDetection],
+	*,
+	brush_diameter: int = 4,
+	pigment: float = 1.0,
+	min_feature_score: float = 0.0,
+) -> int:
+	"""Append black dot-like strokes at the center of detected eye features.
+
+	Returns the number of eye-center dot strokes appended.
+	"""
+
+	from datatypes import StrokePath
+
+	canvas_width, canvas_height = stroke_sequence.image_size
+	appended = 0
+
+	for detection in detections:
+		for feature_box in detection.feature_boxes:
+			if feature_box.name not in ("left_eye", "right_eye"):
+				continue
+			if feature_box.average_score < min_feature_score:
+				continue
+
+			points = detection.keypoints[list(feature_box.keypoint_indices)]
+			if points.size == 0:
+				continue
+
+			center_xy = np.mean(points, axis=0)
+			cx = int(round(float(center_xy[0])))
+			cy = int(round(float(center_xy[1])))
+			cx = max(0, min(canvas_width - 1, cx))
+			cy = max(0, min(canvas_height - 1, cy))
+
+			end_x = min(canvas_width - 1, cx + 1)
+			start_x = max(0, cx - 1)
+			if end_x == cx and start_x < cx:
+				path = [(start_x, cy), (cx, cy)]
+			else:
+				path = [(cx, cy), (end_x, cy)]
+
+			stroke_sequence.strokes.append(
+				StrokePath(
+					color=(0, 0, 0),
+					path=path,
+					pigment=pigment,
+					hex_color="#000000",
+					brushDiameter=brush_diameter,
+				)
+			)
+			appended += 1
+
+	return appended
+
+
 __all__ = [
 	"AnimalFaceDetection",
 	"FeatureBox",
 	"detect_animal_face_features",
 	"draw_feature_boxes",
 	"detect_and_draw_animal_face_features",
+	"append_eye_center_dot_strokes",
 ]
