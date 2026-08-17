@@ -11,4 +11,6 @@ We then draw a small black dot at the location of the eyes and mouth.
 
 ## Results
 
-![pose estimation on an elephant](elephant_pose_estimation.png)
+![pose estimation on a bird](bird_pose_estimation.png)
+
+![pose estimation on a bird](bird_pose_estimation_added.png)

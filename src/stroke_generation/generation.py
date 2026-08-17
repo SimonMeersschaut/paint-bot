@@ -31,7 +31,7 @@ PALETTE_LIST = list(COLOR_PALETTE)
 
 # acceptance constants moved to acceptance.py
 
-def generate_strokes_for_layer(stroke_sequence, resized_segments, label, extra_effort: bool, np_image, vector_field, coverage_mask, padding_mask,
+def generate_strokes_for_layer(stroke_sequence, resized_segments, label, np_image, vector_field, coverage_mask, padding_mask,
                                 stroke_generation_supervisor: object, np_k_nearest):
     """
     TODO
@@ -58,7 +58,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, extra_e
         covered_sp_pixels = np.sum(segment_mask & coverage_mask)
         current_coverage = covered_sp_pixels / total_sp_pixels
         
-        if current_coverage >= stroke_generation_supervisor.get_supercell_target_coverage(extra_effort):
+        if current_coverage >= stroke_generation_supervisor.supercell_target_coverage:
             stroke_generation_supervisor.register_event(Events.coverage_reached)
             return 
             
@@ -107,9 +107,8 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, extra_e
         if stroke_length_pixels >= Hyperparameters.MIN_LEN:
             path_np = np.array(path, dtype=np.int32)
             brush_diameter = stroke_generation_supervisor.brush_diameter
-            brush_diameter = brush_diameter if extra_effort else brush_diameter * 2
 
-            accepted, pigment = accept_stroke(
+            accepted, _ = accept_stroke( # returns pigment too (altough not used)
                 path_np=path_np,
                 stroke_length_pixels=stroke_length_pixels,
                 palette_color=palette_color,
@@ -126,7 +125,7 @@ def generate_strokes_for_layer(stroke_sequence, resized_segments, label, extra_e
                 stroke_sequence.strokes.append(
                     StrokePath(
                         color=tuple(int(c) for c in palette_color),
-                        pigment=pigment,
+                        pigment=stroke_generation_supervisor.pigment,
                         path=path,
                         brushDiameter=stroke_generation_supervisor.brush_diameter,
                         hex_color=hex_color,
