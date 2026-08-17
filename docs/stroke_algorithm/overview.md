@@ -12,4 +12,6 @@ A so called [Stroke Generation Supervisor](supervisor.md) will decide in real ti
 
 ![segment stroke generation.png](segment_stroke_generation.png)
 
+Since us humans mostly focus on face features such as our eyes and a mouth, it can be interesting to amplify these features. You can read more details at [face features](face_features).
+
 After generating all strokes, we reorder them for optimal performance. See [stroke reordering](stroke_ordering).

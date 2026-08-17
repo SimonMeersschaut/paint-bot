@@ -169,9 +169,9 @@ class StrokeGenerationSupervisor:
     def get_supercell_target_coverage(self, extra_effort) -> float:
         """If we have more coverage than this, we wont try fitting."""
         if extra_effort >= 100:
-            return .99
+            return .85
         else:
-            return .97
+            return .6
 
     @property
     def max_stroke_list_length(self) -> int:

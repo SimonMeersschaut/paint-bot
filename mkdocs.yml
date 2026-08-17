@@ -49,6 +49,7 @@ nav:
     - Expanding: stroke_algorithm/stroke_expanding.md
     - Supervisor: stroke_algorithm/supervisor.md
     - Stroke Ordering: stroke_algorithm/stroke_ordering.md
+    - Face Features: stroke_algorithm/face_features.md
     - Experiments:
       - Overview: stroke_algorithm/experiments/overview.md
       - Experiment 1: stroke_algorithm/experiments/experiment1.md
