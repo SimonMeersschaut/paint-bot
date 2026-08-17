@@ -68,8 +68,8 @@ def water_brush(printer: Printer, my_robot_calibration):
 
     print(f"Moving to water reservoir at ({x_water}, {y_water})...")
     # Lift to safe height, move to water cup, and dip down
-    printer.move_to(z=safe_z_height, feed_rate=FEED_RATE_TRAVEL)
-    printer.move_to(x=x_water, y=y_water, feed_rate=FEED_RATE_TRAVEL)
+    # printer.move_to(, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(x=x_water, y=y_water, z=safe_z_height, feed_rate=FEED_RATE_TRAVEL)
 
     print("Agitating brush in water...")
     # Perform a rapid mechanical "shake" to flex bristles and soak up water
@@ -79,7 +79,8 @@ def water_brush(printer: Printer, my_robot_calibration):
         center_y=y_water,
         z_top=z_water+4,
         z_down=z_water,
-        direction=random.random()*(2*math.pi)
+        direction=random.random()*(2*math.pi),
+        cycles=2
     )
     
     # lift up
@@ -104,7 +105,8 @@ def load_brush(printer: Printer, my_robot_calibration, color_index):
         z_top=z_paint+4,
         z_down=z_paint,
         radius=3.5,
-        direction =(random.random() - .5) * 2 * (math.pi/6)
+        direction =(random.random() - .5) * 2 * (math.pi/6),
+        cycles=1,
     )
 
     # Move back up to clear the well completely before drawing or traveling
@@ -130,7 +132,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
     down_height = robot_calibration.bottom_left[2]
     
     # Configurable extension distance for the fluid motion (in mm)
-    LEAD_IN_DISTANCE = 5.0 
+    LEAD_IN_DISTANCE = 2.0 
     LEAD_OUT_DISTANCE = 2.0
     
     # 1. Bounds check to ensure the index exists
@@ -191,8 +193,7 @@ def execute_stroke(printer: Printer, robot_calibration: RobotCalibration, stroke
     # Step A: Ensure brush is safely raised up before traveling
 
     # Step B: Travel to the extended airborne start point (Lead-in position)
-    printer.move_to(x=leadin_x, y=leadin_y, feed_rate=FEED_RATE_TRAVEL)
-    printer.move_to(z=canvas_up_height, feed_rate=FEED_RATE_TRAVEL)
+    printer.move_to(x=leadin_x, y=leadin_y, z=canvas_up_height, feed_rate=FEED_RATE_TRAVEL)
     printer.move_to(z=(down_height+canvas_up_height)/2, feed_rate=FEED_RATE_TRAVEL)
 
     # Step C: Swoop down! Move to the true start point and down_height simultaneously

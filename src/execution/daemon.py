@@ -18,6 +18,10 @@ class ExecutionDaemon:
         my_calibration = RobotCalibration.load("data/my_robot_calibration.json")
 
         try:
+            os.mkdir(Path("timelapse"))
+        except FileExistsError:
+            pass # ok
+        try:
             os.mkdir(Path("timelapse") / Path(project_name))
         except FileExistsError:
             pass # ok
