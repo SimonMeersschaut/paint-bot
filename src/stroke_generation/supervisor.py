@@ -40,6 +40,7 @@ class StrokeGenerationSupervisor:
         self.error_threshold_history = []
 
         self.brush_diameter = 15
+        self.pigment = 1
     
     def register_event(self, event: Events):
         if event == Events.stroke_accepted:
@@ -165,13 +166,11 @@ class StrokeGenerationSupervisor:
     def max_attempts(self) -> int:
         """Attempts to create a stroke, per segment"""
         return 1000
-        
-    def get_supercell_target_coverage(self, extra_effort) -> float:
+
+    @property
+    def supercell_target_coverage(self) -> float:
         """If we have more coverage than this, we wont try fitting."""
-        if extra_effort >= 100:
-            return .99
-        else:
-            return .97
+        return .7
 
     @property
     def max_stroke_list_length(self) -> int:

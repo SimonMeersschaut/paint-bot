@@ -42,9 +42,9 @@ def resize_image(img: object, CANVAS_SIZE):
     Unified entry point that pads and resizes either a PIL Image 
     or a NumPy ndarray to CANVAS_SIZE while preserving aspect ratio.
     """
-    if isinstance(img, np.ndarray, CANVAS_SIZE):
+    if isinstance(img, np.ndarray):
         # Route to the ndarray processor
-        return resize_image_ndarray(img)
+        return resize_image_ndarray(img, CANVAS_SIZE)
     else:
         # Original PIL logic
         if len(img.getbands()) == 1:
